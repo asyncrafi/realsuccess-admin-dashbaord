@@ -147,6 +147,23 @@ export function useSettings() {
     }
   };
 
+  const uploadAvatar = async (file: File) => {
+    try {
+      setSaving(true);
+      const newAvatarUrl = await settingsService.uploadAvatar(file);
+      if (newAvatarUrl) {
+        setAvatar(newAvatarUrl);
+      }
+      toast.success("Profile photo updated successfully!");
+      return newAvatarUrl;
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to upload profile photo");
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return {
     activeTab,
     setActiveTab,
@@ -175,5 +192,6 @@ export function useSettings() {
     savePassword,
     savePrivacyPolicy,
     saveTermsConditions,
+    uploadAvatar,
   };
 }

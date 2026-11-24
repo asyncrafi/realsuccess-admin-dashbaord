@@ -12,6 +12,14 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "Real Success - Admin Dashboard",
   description: "Real Success Enterprise Admin Dashboard Authentication",
+  icons: {
+    icon: [
+      { url: "/logo.png", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

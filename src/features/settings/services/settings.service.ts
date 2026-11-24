@@ -39,7 +39,9 @@ export const settingsService = {
   async updateProfile(data: Partial<UserProfileData>): Promise<UserProfileData> {
     const payload: Record<string, any> = {};
     if (data.userName) payload.name = data.userName;
-    if (data.contactNumber !== undefined) payload.phone = data.contactNumber;
+    if (data.contactNumber !== undefined) {
+      payload.phone = data.contactNumber.replace(/[^\d+]/g, "").slice(0, 15);
+    }
 
     const res: any = await apiClient("/auth/profile/", {
       method: "PUT",
@@ -53,6 +55,20 @@ export const settingsService = {
       role: "Super Admin",
       avatar: profile.profile_picture || data.avatar || "/fallback_avatar.png",
     };
+  },
+
+  /**
+   * Upload Profile Avatar to backend
+   */
+  async uploadAvatar(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append("profile_picture", file);
+    const res: any = await apiClient("/auth/profile/", {
+      method: "PUT",
+      data: formData,
+    });
+    const profile = res?.data || {};
+    return profile.profile_picture || "";
   },
 
   /**

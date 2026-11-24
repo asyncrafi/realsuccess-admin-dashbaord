@@ -17,15 +17,24 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
       ? localStorage.getItem("token") || localStorage.getItem("accessToken")
       : null;
 
+  const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
+
+  const defaultHeaders: Record<string, string> = {};
+  if (!isFormData) {
+    defaultHeaders["Content-Type"] = "application/json";
+  }
+  if (token) {
+    defaultHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
   const method = options.method || (data ? "POST" : "GET");
   const config: RequestInit = {
     method,
     headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...defaultHeaders,
       ...headers,
     },
-    ...(data ? { body: JSON.stringify(data) } : {}),
+    ...(data ? { body: isFormData ? (data as FormData) : JSON.stringify(data) } : {}),
     ...customConfig,
   };
 

@@ -35,18 +35,22 @@ export function SettingsView() {
     savePassword,
     savePrivacyPolicy,
     saveTermsConditions,
+    uploadAvatar,
+    avatar,
     saving,
   } = useSettings();
 
-  const [avatarSrc, setAvatarSrc] = useState("/fallback_avatar.png");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const displayAvatar = avatarPreview || avatar || "/fallback_avatar.png";
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      setAvatarSrc(url);
-      toast.success("Profile avatar updated!");
+      setAvatarPreview(url);
+      await uploadAvatar(file);
     }
   };
 
@@ -61,22 +65,26 @@ export function SettingsView() {
       <div className="bg-white rounded-3xl border border-gray-200/80 p-6 md:p-8 shadow-xs space-y-8">
         {/* User Profile Card Header */}
         <div className="flex items-center gap-5">
-          {/* Avatar with Camera Overlay */}
-          <div className="relative h-20 w-20 md:h-24 md:w-24 rounded-full overflow-hidden border-2 border-gray-100 flex-shrink-0 group">
-            <Image
-              src={avatarSrc}
-              alt={userName}
-              fill
-              className="object-cover"
-            />
+          {/* Avatar with Elegant Floating Camera Badge */}
+          <div className="relative h-20 w-20 md:h-24 md:w-24 flex-shrink-0">
+            {/* Image Mask Circle */}
+            <div className="relative h-full w-full rounded-full overflow-hidden border-2 border-white shadow-md ring-2 ring-gray-100 bg-gray-50">
+              <Image
+                src={displayAvatar}
+                alt={userName}
+                fill
+                className="object-cover"
+                onError={() => setAvatarPreview("/fallback_avatar.png")}
+              />
+            </div>
             {/* Camera Upload Button Overlay */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-1 right-1 p-1.5 rounded-full bg-slate-800 text-white hover:bg-slate-900 transition-colors shadow-md cursor-pointer z-10"
+              className="absolute bottom-0 right-0 p-2 rounded-full bg-slate-900 text-white hover:bg-black transition-all shadow-md cursor-pointer ring-2 ring-white hover:scale-105 active:scale-95 z-20 flex items-center justify-center"
               title="Change Profile Photo"
             >
-              <Camera className="h-3.5 w-3.5" />
+              <Camera className="h-4 w-4" />
             </button>
             <input
               ref={fileInputRef}
