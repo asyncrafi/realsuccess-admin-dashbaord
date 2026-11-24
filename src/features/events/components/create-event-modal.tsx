@@ -59,7 +59,7 @@ export function CreateEventModal() {
 
   // Event Settings States
   const [registrationStatus, setRegistrationStatus] = useState("Open");
-  const [eventStatus, setEventStatus] = useState("Published");
+  const [eventStatus, setEventStatus] = useState("Active");
   const [maxAttendees, setMaxAttendees] = useState("500");
   const [unlimitedAttendees, setUnlimitedAttendees] = useState(false);
 
@@ -493,7 +493,7 @@ export function CreateEventModal() {
                 />
               </div>
 
-              {/* Event Status (Default: Published as requested) */}
+              {/* Event Status (Default: Active) */}
               <div className="space-y-2">
                 <Label htmlFor="eventStatus" required>
                   Event Status
@@ -502,9 +502,9 @@ export function CreateEventModal() {
                   value={eventStatus}
                   onChange={(val) => setEventStatus(val)}
                   options={[
-                    { label: "Published", value: "Published" },
-                    { label: "Draft", value: "Draft" },
-                    { label: "Archived", value: "Archived" },
+                    { label: "Active", value: "Active" },
+                    { label: "Upcoming", value: "Upcoming" },
+                    { label: "Completed", value: "Completed" },
                   ]}
                 />
               </div>

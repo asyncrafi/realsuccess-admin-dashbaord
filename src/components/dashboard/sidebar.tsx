@@ -63,8 +63,10 @@ export function Sidebar() {
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              pathname
+                ? pathname === item.href ||
+                  (item.href !== "/dashboard" && pathname.startsWith(item.href))
+                : false;
 
             return (
               <Link
