@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MOCK_ATTENDEES } from "../mock-data/attendees.data";
 import { AttendeeItem } from "../types/attendees.types";
+import { apiClient } from "@/lib/api-client";
 
 function parseDate(dateStr: string): Date {
   return new Date(dateStr);
 }
 
 export function useAttendees() {
+  const [attendees, setAttendees] = useState<AttendeeItem[]>(MOCK_ATTENDEES);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [startDate, setStartDate] = useState("");
@@ -16,8 +18,40 @@ export function useAttendees() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedAttendee, setSelectedAttendee] = useState<AttendeeItem | null>(null);
 
+  const fetchAttendees = async () => {
+    try {
+      const res: any = await apiClient("/tickets/attendees/");
+      const items = res?.data || (Array.isArray(res) ? res : []);
+      if (Array.isArray(items)) {
+        const mapped: AttendeeItem[] = items.map((a: any) => ({
+          id: String(a.id),
+          name: a.name || a.attendee_name || "",
+          email: a.email || a.attendee_email || "",
+          phone: a.phone || a.attendee_phone || "",
+          avatar: a.avatar || "/fallback_avatar.png",
+          eventName: a.eventName || "RealSuccess Event",
+          ticketType: a.ticketType || a.ticket_type || "General",
+          registrationStatus: a.registrationStatus || a.registration_status || "Confirmed",
+          accessCode: a.accessCode || a.access_code || "",
+          status: a.status || a.check_in_status || "Not Checked In",
+          registeredAt: a.registeredAt || (a.created_at ? new Date(a.created_at).toLocaleDateString() : ""),
+        }));
+        setAttendees(mapped);
+      }
+    } catch {
+      setAttendees([...MOCK_ATTENDEES]);
+    }
+  };
+
+  useEffect(() => {
+    fetchAttendees();
+    const handleUpdated = () => fetchAttendees();
+    window.addEventListener("attendeesUpdated", handleUpdated);
+    return () => window.removeEventListener("attendeesUpdated", handleUpdated);
+  }, []);
+
   const filteredAttendees = useMemo(() => {
-    return MOCK_ATTENDEES.filter((att) => {
+    return attendees.filter((att) => {
       // Search match
       const term = searchTerm.toLowerCase();
       const matchesSearch =
@@ -49,7 +83,7 @@ export function useAttendees() {
 
       return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [searchTerm, statusFilter, startDate, endDate]);
+  }, [attendees, searchTerm, statusFilter, startDate, endDate]);
 
   const clearDateFilter = () => {
     setStartDate("");

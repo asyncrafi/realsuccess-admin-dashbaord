@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectDropdown } from "@/components/ui/select-dropdown";
 import { SessionStatus, SessionType } from "../types/schedule.types";
+import { scheduleService } from "../services/schedule.service";
 
 export function CreateScheduleModal() {
   const router = useRouter();
@@ -41,8 +42,19 @@ export function CreateScheduleModal() {
     router.push(newQuery ? `/schedule?${newQuery}` : "/schedule", { scroll: false });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    await scheduleService.createSession({
+      sessionTitle,
+      speakerName,
+      speakerRole,
+      time,
+      date,
+      venue,
+      type,
+      status,
+      description,
+    });
     toast.success(isEdit ? "Session updated successfully!" : "Session created & published!");
     handleClose();
   };

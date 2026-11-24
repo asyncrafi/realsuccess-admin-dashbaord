@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MOCK_ANNOUNCEMENTS } from "../mock-data/announcements.data";
 import { AnnouncementItem } from "../types/announcements.types";
+import { apiClient } from "@/lib/api-client";
 
 function parseDate(dateStr: string): Date {
   return new Date(dateStr);
 }
 
 export function useAnnouncements() {
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>(MOCK_ANNOUNCEMENTS);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [startDate, setStartDate] = useState("");
@@ -16,8 +18,40 @@ export function useAnnouncements() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementItem | null>(null);
 
+  const fetchAnnouncements = async () => {
+    try {
+      const res: any = await apiClient("/announcements/");
+      const items = res?.data || (Array.isArray(res) ? res : []);
+      if (Array.isArray(items)) {
+        const mapped: AnnouncementItem[] = items.map((a: any) => ({
+          id: String(a.id),
+          title: a.title,
+          eventName: a.eventName || "RealSuccess Main Event",
+          publishedBy: a.publishedBy || a.published_by || "Admin",
+          date: a.date || (a.created_at ? new Date(a.created_at).toLocaleDateString() : "Just now"),
+          priority: a.priority || "Normal",
+          status: a.status || "Published",
+          category: a.category || "General",
+          content: a.content || "",
+          takeawayTime: a.takeaway_time,
+          takeawayVenue: a.takeaway_venue,
+        }));
+        setAnnouncements(mapped);
+      }
+    } catch {
+      setAnnouncements([...MOCK_ANNOUNCEMENTS]);
+    }
+  };
+
+  useEffect(() => {
+    fetchAnnouncements();
+    const handleUpdated = () => fetchAnnouncements();
+    window.addEventListener("announcementsUpdated", handleUpdated);
+    return () => window.removeEventListener("announcementsUpdated", handleUpdated);
+  }, []);
+
   const filteredAnnouncements = useMemo(() => {
-    return MOCK_ANNOUNCEMENTS.filter((anc) => {
+    return announcements.filter((anc) => {
       // Search match
       const term = searchTerm.toLowerCase();
       const matchesSearch =
@@ -49,7 +83,7 @@ export function useAnnouncements() {
 
       return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [searchTerm, statusFilter, startDate, endDate]);
+  }, [announcements, searchTerm, statusFilter, startDate, endDate]);
 
   const clearDateFilter = () => {
     setStartDate("");

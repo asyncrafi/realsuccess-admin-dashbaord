@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MOCK_TICKETS } from "../mock-data/tickets.data";
 import { TicketItem } from "../types/tickets.types";
+import { apiClient } from "@/lib/api-client";
 
 function parseIssueDate(dateStr: string): Date {
   const parts = dateStr.split(".");
@@ -16,6 +17,7 @@ function parseIssueDate(dateStr: string): Date {
 }
 
 export function useTickets() {
+  const [tickets, setTickets] = useState<TicketItem[]>(MOCK_TICKETS);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [startDate, setStartDate] = useState("");
@@ -23,8 +25,39 @@ export function useTickets() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<TicketItem | null>(null);
 
+  const fetchTickets = async () => {
+    try {
+      const res: any = await apiClient("/tickets/");
+      const items = res?.data || (Array.isArray(res) ? res : []);
+      if (Array.isArray(items)) {
+        const mapped: TicketItem[] = items.map((t: any) => ({
+          id: String(t.id),
+          ticketId: t.ticketId || t.ticket_id || `TKT-${t.id}`,
+          attendeeName: t.attendeeName || t.attendee_name || "",
+          attendeeEmail: t.attendeeEmail || t.attendee_email || "",
+          attendeeAvatar: t.attendee_avatar || "/fallback_avatar.png",
+          eventName: t.eventName || "RealSuccess Event",
+          ticketType: t.ticketType || t.ticket_type || "General",
+          checkInStatus: t.checkInStatus || t.check_in_status || "Not Checked In",
+          issueDate: t.issueDate || t.issue_date || "",
+          status: t.status || t.registration_status || "Confirmed",
+        }));
+        setTickets(mapped);
+      }
+    } catch {
+      setTickets([...MOCK_TICKETS]);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+    const handleUpdated = () => fetchTickets();
+    window.addEventListener("ticketsUpdated", handleUpdated);
+    return () => window.removeEventListener("ticketsUpdated", handleUpdated);
+  }, []);
+
   const filteredTickets = useMemo(() => {
-    return MOCK_TICKETS.filter((tkt) => {
+    return tickets.filter((tkt) => {
       // Search match
       const term = searchTerm.toLowerCase();
       const matchesSearch =
@@ -56,7 +89,7 @@ export function useTickets() {
 
       return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [searchTerm, statusFilter, startDate, endDate]);
+  }, [tickets, searchTerm, statusFilter, startDate, endDate]);
 
   const clearDateFilter = () => {
     setStartDate("");

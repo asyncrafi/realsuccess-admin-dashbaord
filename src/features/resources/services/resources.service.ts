@@ -5,13 +5,23 @@ import { ResourceFilterOptions, ResourceItem } from "../types/resources.types";
 export const resourcesService = {
   /**
    * Fetch all resources with filtering and pagination
-   * In future: apiClient.get<ResourceItem[]>('/resources', { params: options })
    */
   async getResources(options?: ResourceFilterOptions): Promise<{
     data: ResourceItem[];
     total: number;
   }> {
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    try {
+      const res: any = await apiClient("/resources/");
+      const items = res?.data || (Array.isArray(res) ? res : []);
+      if (Array.isArray(items) && items.length > 0) {
+        return {
+          data: items,
+          total: items.length,
+        };
+      }
+    } catch (e) {
+      console.warn("Using local resources fallback", e);
+    }
 
     let results = [...MOCK_RESOURCES];
 
@@ -48,14 +58,37 @@ export const resourcesService = {
       eventName: data.eventName || "Leadership Weekend",
       type: data.type || "PDF",
       category: data.category || "Workshop Materials",
-      date: "Jul 23, 2026 • 10:45 AM",
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
       status: data.status || "Published",
       fileSize: data.fileSize || "2.5 MB",
       fileUrl: data.fileUrl || "/downloads/sample.pdf",
       description: data.description || "",
     };
 
+    try {
+      const res: any = await apiClient("/resources/", {
+        method: "POST",
+        data: {
+          title: data.title,
+          description: data.description || "",
+          category: data.category || "Workshop Materials",
+          type: data.type || "PDF",
+          status: data.status || "Published",
+        },
+      });
+      if (res?.data) {
+        const item = res.data;
+        newResource.id = String(item.id);
+        if (item.date) newResource.date = item.date;
+      }
+    } catch (err) {
+      console.warn("Backend resource creation failed, saved to local state", err);
+    }
+
     MOCK_RESOURCES.unshift(newResource);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("resourcesUpdated"));
+    }
     return newResource;
   },
 };

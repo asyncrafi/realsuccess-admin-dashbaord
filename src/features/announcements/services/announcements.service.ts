@@ -5,13 +5,23 @@ import { AnnouncementFilterOptions, AnnouncementItem } from "../types/announceme
 export const announcementsService = {
   /**
    * Fetch all announcements with filtering and pagination
-   * In future, replace mock response with: apiClient.get<AnnouncementItem[]>('/announcements', { params: options })
    */
   async getAnnouncements(options?: AnnouncementFilterOptions): Promise<{
     data: AnnouncementItem[];
     total: number;
   }> {
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    try {
+      const res: any = await apiClient("/announcements/");
+      const items = res?.data || (Array.isArray(res) ? res : []);
+      if (Array.isArray(items) && items.length > 0) {
+        return {
+          data: items,
+          total: items.length,
+        };
+      }
+    } catch (e) {
+      console.warn("Using local announcements fallback", e);
+    }
 
     let results = [...MOCK_ANNOUNCEMENTS];
 
@@ -42,6 +52,10 @@ export const announcementsService = {
    * Fetch single announcement by ID
    */
   async getAnnouncementById(id: string): Promise<AnnouncementItem | undefined> {
+    try {
+      const res: any = await apiClient(`/announcements/${id}/`);
+      if (res?.data) return res.data;
+    } catch {}
     return MOCK_ANNOUNCEMENTS.find((anc) => anc.id === id);
   },
 
@@ -53,8 +67,8 @@ export const announcementsService = {
       id: `anc-${Date.now()}`,
       title: data.title || "New Announcement",
       eventName: data.eventName || "Leadership Weekend",
-      publishedBy: data.publishedBy || "Aminul Arnob",
-      date: "Aug 7, 9:30 AM",
+      publishedBy: data.publishedBy || "Admin",
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
       priority: data.priority || "Normal",
       status: data.status || "Published",
       category: data.category || "General",
@@ -63,7 +77,33 @@ export const announcementsService = {
       takeawayVenue: data.takeawayVenue,
     };
 
+    try {
+      const res: any = await apiClient("/announcements/", {
+        method: "POST",
+        data: {
+          title: data.title,
+          content: data.content || "",
+          category: data.category || "General",
+          priority: data.priority || "Normal",
+          status: data.status || "Published",
+          takeaway_time: data.takeawayTime || "",
+          takeaway_venue: data.takeawayVenue || "",
+          published_by: data.publishedBy || "Admin",
+        },
+      });
+      if (res?.data) {
+        const item = res.data;
+        newAnnouncement.id = String(item.id);
+        if (item.date) newAnnouncement.date = item.date;
+      }
+    } catch (err) {
+      console.warn("Backend announcement creation failed, saved to local state", err);
+    }
+
     MOCK_ANNOUNCEMENTS.unshift(newAnnouncement);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("announcementsUpdated"));
+    }
     return newAnnouncement;
   },
 };
