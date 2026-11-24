@@ -62,6 +62,7 @@ export function CreateEventModal() {
   const [eventStatus, setEventStatus] = useState("Active");
   const [maxAttendees, setMaxAttendees] = useState("500");
   const [unlimitedAttendees, setUnlimitedAttendees] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -127,8 +128,6 @@ export function CreateEventModal() {
     navigator.clipboard.writeText(accessCode);
     toast.success("Access code copied to clipboard!");
   };
-
-  const [submitting, setSubmitting] = useState(false);
 
   // Create Event Submit
   const handleSubmit = async (e: React.FormEvent) => {
