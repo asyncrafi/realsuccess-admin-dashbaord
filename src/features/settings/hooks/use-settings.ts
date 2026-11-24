@@ -1,40 +1,166 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { SettingTabType } from "../types/settings.types";
+import { settingsService } from "../services/settings.service";
 
 export function useSettings() {
   const [activeTab, setActiveTab] = useState<SettingTabType>("edit-profile");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
 
   // Profile Form State
-  const [userName, setUserName] = useState("Aminul Arnob");
-  const [email, setEmail] = useState("aiarnob23@gmail.com");
-  const [contactNumber, setContactNumber] = useState("+8801700700700");
+  const [userName, setUserName] = useState("Real Success Admin");
+  const [email, setEmail] = useState("admin@ourrealsuccess.com");
+  const [contactNumber, setContactNumber] = useState("");
+  const [role, setRole] = useState("Super Admin");
+  const [avatar, setAvatar] = useState("/fallback_avatar.png");
 
   // Password Form State
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Privacy Policy HTML Content
-  const [privacyPolicy, setPrivacyPolicy] = useState(
-    `<p><strong>1. Information We Collect</strong></p><p>We collect personal information to provide and improve our services. The types of information we collect include:</p><p><strong>a. Information You Provide Directly:</strong></p><ul style="padding-left: 20px;"><li>Account Registration: Name, email address, team name, age group, and other details required for registration.</li><li>Uploaded Content: Videos, scores, and other materials submitted for events.</li><li>Communication: Any messages or inquiries sent to us.</li></ul><p><strong>b. Automatically Collected Information:</strong></p><ul style="padding-left: 20px;"><li>Device Information: IP address, browser type, operating system, and device identifiers.</li><li>Usage Data: Pages visited, time spent on pages, and navigation patterns.</li></ul><p><strong>c. Cookies and Tracking Technologies:</strong></p><p>We use cookies to enhance your experience, track usage, and analyze performance. You can manage your cookie preferences in your browser settings.</p>`
-  );
+  // Legal Documents
+  const [privacyPolicy, setPrivacyPolicy] = useState("");
+  const [termsConditions, setTermsConditions] = useState("");
 
-  // Terms & Conditions HTML Content
-  const [termsConditions, setTermsConditions] = useState(
-    `<p><strong>1. Terms of Use & Event Governance</strong></p><p>By accessing or using the RealSuccess Platform, you agree to comply with and be bound by all terms, policies, and code of conduct guidelines.</p><p><strong>a. User Responsibilities:</strong></p><ul style="padding-left: 20px;"><li>Maintain accurate profile information.</li><li>Respect event guidelines and community standards.</li></ul><p><strong>b. Platform Rights:</strong></p><ul style="padding-left: 20px;"><li>RealSuccess reserves the right to update event schedules, venue details, or attendee access as necessary for event operations.</li></ul>`
-  );
+  useEffect(() => {
+    let mounted = true;
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [profile, legal] = await Promise.all([
+          settingsService.getProfile(),
+          settingsService.getLegalDocuments(),
+        ]);
+
+        if (!mounted) return;
+
+        if (profile) {
+          setUserName(profile.userName || "Real Success Admin");
+          setEmail(profile.email || "admin@ourrealsuccess.com");
+          setContactNumber(profile.contactNumber || "");
+          setRole(profile.role || "Super Admin");
+          if (profile.avatar) setAvatar(profile.avatar);
+        }
+
+        if (legal) {
+          if (legal.privacy) setPrivacyPolicy(legal.privacy);
+          if (legal.terms) setTermsConditions(legal.terms);
+        }
+      } catch (err) {
+        console.error("Failed to load settings from API", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const saveProfile = async () => {
+    try {
+      setSaving(true);
+      await settingsService.updateProfile({
+        userName,
+        contactNumber,
+      });
+      toast.success("Admin profile updated successfully!");
+      return true;
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update profile");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePassword = async () => {
+    if (!currentPassword) {
+      toast.error("Please enter your current password");
+      return false;
+    }
+    if (!newPassword) {
+      toast.error("Please enter your new password");
+      return false;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New password and confirm password do not match");
+      return false;
+    }
+    if (newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters");
+      return false;
+    }
+
+    try {
+      setSaving(true);
+      await settingsService.updatePassword({
+        currentPassword,
+        newPassword,
+      });
+      toast.success("Password changed successfully!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      return true;
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to change password");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePrivacyPolicy = async (contentToSave?: string) => {
+    const content = contentToSave !== undefined ? contentToSave : privacyPolicy;
+    try {
+      setSaving(true);
+      await settingsService.updateLegalDocument("privacy", content);
+      toast.success("Privacy Policy updated successfully!");
+      return true;
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update Privacy Policy");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveTermsConditions = async (contentToSave?: string) => {
+    const content = contentToSave !== undefined ? contentToSave : termsConditions;
+    try {
+      setSaving(true);
+      await settingsService.updateLegalDocument("terms", content);
+      toast.success("Terms & Conditions updated successfully!");
+      return true;
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update Terms & Conditions");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return {
     activeTab,
     setActiveTab,
+    loading,
+    saving,
     userName,
     setUserName,
     email,
     setEmail,
     contactNumber,
     setContactNumber,
+    role,
+    avatar,
+    setAvatar,
     currentPassword,
     setCurrentPassword,
     newPassword,
@@ -45,5 +171,9 @@ export function useSettings() {
     setPrivacyPolicy,
     termsConditions,
     setTermsConditions,
+    saveProfile,
+    savePassword,
+    savePrivacyPolicy,
+    saveTermsConditions,
   };
 }

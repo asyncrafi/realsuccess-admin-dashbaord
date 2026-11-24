@@ -1,51 +1,107 @@
 import { apiClient } from "@/lib/api-client";
 import { UserProfileData } from "../types/settings.types";
 
+export interface LegalDocumentsResponse {
+  privacy: string;
+  terms: string;
+  updatedAt?: string;
+}
+
 export const settingsService = {
   /**
-   * Fetch current admin profile settings
-   * In future: apiClient.get<UserProfileData>('/admin/profile')
+   * Fetch current admin profile settings from Django backend
    */
   async getProfile(): Promise<UserProfileData> {
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    return {
-      userName: "Maietry Cruz",
-      email: "Sarah@gamil.com",
-      contactNumber: "+99007007007",
-      role: "Admin",
-      avatar: "/fallback_avatar.png",
-    };
+    try {
+      const res: any = await apiClient("/auth/profile/");
+      const profile = res?.data || {};
+      return {
+        userName: profile.name || "Real Success Admin",
+        email: profile.email || "admin@ourrealsuccess.com",
+        contactNumber: profile.phone || "",
+        role: "Super Admin",
+        avatar: profile.profile_picture || "/fallback_avatar.png",
+      };
+    } catch {
+      return {
+        userName: "Real Success Admin",
+        email: "admin@ourrealsuccess.com",
+        contactNumber: "+1 (555) 000-0000",
+        role: "Super Admin",
+        avatar: "/fallback_avatar.png",
+      };
+    }
   },
 
   /**
    * Update profile information
-   * In future: apiClient.put<UserProfileData>('/admin/profile', data)
    */
   async updateProfile(data: Partial<UserProfileData>): Promise<UserProfileData> {
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    const payload: Record<string, any> = {};
+    if (data.userName) payload.name = data.userName;
+    if (data.contactNumber !== undefined) payload.phone = data.contactNumber;
+
+    const res: any = await apiClient("/auth/profile/", {
+      method: "PUT",
+      data: payload,
+    });
+    const profile = res?.data || {};
     return {
-      userName: data.userName || "Maietry Cruz",
-      email: data.email || "Sarah@gamil.com",
-      contactNumber: data.contactNumber || "+99007007007",
-      role: "Admin",
-      avatar: data.avatar || "/fallback_avatar.png",
+      userName: profile.name || data.userName || "Admin",
+      email: profile.email || data.email || "",
+      contactNumber: profile.phone || data.contactNumber || "",
+      role: "Super Admin",
+      avatar: profile.profile_picture || data.avatar || "/fallback_avatar.png",
     };
   },
 
   /**
-   * Update Password
-   * In future: apiClient.post('/admin/change-password', { currentPassword, newPassword })
+   * Update Password via Django /api/auth/password/change/
    */
-  async updatePassword(data: any): Promise<boolean> {
-    await new Promise((resolve) => setTimeout(resolve, 100));
+  async updatePassword(data: { currentPassword: string; newPassword: string }): Promise<boolean> {
+    await apiClient("/auth/password/change/", {
+      method: "POST",
+      data: {
+        old_password: data.currentPassword,
+        new_password: data.newPassword,
+      },
+    });
     return true;
   },
 
   /**
-   * Save legal documents (Privacy & Terms)
+   * Fetch legal documents (Privacy & Terms) from backend /api/content/legal/
+   */
+  async getLegalDocuments(): Promise<LegalDocumentsResponse> {
+    try {
+      const res: any = await apiClient("/content/legal/");
+      const doc = res?.data || {};
+      return {
+        privacy: doc.privacy_policy_content || "",
+        terms: doc.terms_conditions_content || "",
+        updatedAt: doc.updated_at,
+      };
+    } catch {
+      return {
+        privacy: "",
+        terms: "",
+      };
+    }
+  },
+
+  /**
+   * Save legal documents (Privacy & Terms) to backend /api/content/legal/
    */
   async updateLegalDocument(type: "privacy" | "terms", content: string): Promise<boolean> {
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    const payload =
+      type === "privacy"
+        ? { privacy_policy_content: content }
+        : { terms_conditions_content: content };
+
+    await apiClient("/content/legal/", {
+      method: "PUT",
+      data: payload,
+    });
     return true;
   },
 };

@@ -1,6 +1,5 @@
 "use client";
 
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +11,8 @@ interface ChangePasswordTabProps {
   setNewPassword: (val: string) => void;
   confirmPassword: string;
   setConfirmPassword: (val: string) => void;
+  onSave?: () => Promise<boolean | void>;
+  isSaving?: boolean;
 }
 
 export function ChangePasswordTab({
@@ -21,17 +22,14 @@ export function ChangePasswordTab({
   setNewPassword,
   confirmPassword,
   setConfirmPassword,
+  onSave,
+  isSaving,
 }: ChangePasswordTabProps) {
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword && newPassword !== confirmPassword) {
-      toast.error("New password and confirm password do not match!");
-      return;
+    if (onSave) {
+      await onSave();
     }
-    toast.success("Password updated successfully!");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
   };
 
   return (
@@ -57,7 +55,7 @@ export function ChangePasswordTab({
           type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
-          placeholder="********"
+          placeholder="At least 8 characters"
           className="h-12 rounded-xl bg-gray-50/70 border-gray-200 focus:bg-white"
         />
       </div>
@@ -70,18 +68,19 @@ export function ChangePasswordTab({
           type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="********"
+          placeholder="Confirm new password"
           className="h-12 rounded-xl bg-gray-50/70 border-gray-200 focus:bg-white"
         />
       </div>
 
-      {/* Update Password Action Button */}
+      {/* Save Change Action Button */}
       <div className="pt-2">
         <Button
           type="submit"
-          className="w-full h-12 rounded-2xl bg-[oklch(0.48_0.1394_252.75)] hover:bg-[oklch(0.40_0.1394_252.75)] text-white font-bold text-base shadow-xs"
+          disabled={isSaving}
+          className="w-full h-12 rounded-2xl bg-[oklch(0.48_0.1394_252.75)] hover:bg-[oklch(0.40_0.1394_252.75)] text-white font-bold text-base shadow-xs disabled:opacity-50"
         >
-          Update password
+          {isSaving ? "Updating Password..." : "Save Change"}
         </Button>
       </div>
     </form>

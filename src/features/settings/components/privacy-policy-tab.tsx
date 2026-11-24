@@ -1,18 +1,26 @@
 "use client";
 
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { RichTextEditor } from "./rich-text-editor";
 
 interface PrivacyPolicyTabProps {
   content: string;
   setContent: (val: string) => void;
+  onSave?: (content: string) => Promise<boolean | void>;
+  isSaving?: boolean;
 }
 
-export function PrivacyPolicyTab({ content, setContent }: PrivacyPolicyTabProps) {
-  const handleSubmit = (e: React.FormEvent) => {
+export function PrivacyPolicyTab({
+  content,
+  setContent,
+  onSave,
+  isSaving,
+}: PrivacyPolicyTabProps) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Privacy Policy updated successfully!");
+    if (onSave) {
+      await onSave(content);
+    }
   };
 
   return (
@@ -24,9 +32,10 @@ export function PrivacyPolicyTab({ content, setContent }: PrivacyPolicyTabProps)
       <div className="pt-2">
         <Button
           type="submit"
-          className="w-full h-12 rounded-2xl bg-[oklch(0.48_0.1394_252.75)] hover:bg-[oklch(0.40_0.1394_252.75)] text-white font-bold text-base shadow-xs"
+          disabled={isSaving}
+          className="w-full h-12 rounded-2xl bg-[oklch(0.48_0.1394_252.75)] hover:bg-[oklch(0.40_0.1394_252.75)] text-white font-bold text-base shadow-xs disabled:opacity-50"
         >
-          Save Change
+          {isSaving ? "Saving..." : "Save Change"}
         </Button>
       </div>
     </form>

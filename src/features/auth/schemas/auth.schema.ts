@@ -25,7 +25,8 @@ export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export const verifyOtpSchema = z.object({
   otp: z
     .string()
-    .length(6, { message: "OTP code must be exactly 6 digits" }),
+    .min(4, { message: "OTP code must be at least 4 digits" })
+    .max(6, { message: "OTP code cannot exceed 6 digits" }),
 });
 
 export type VerifyOtpFormData = z.infer<typeof verifyOtpSchema>;

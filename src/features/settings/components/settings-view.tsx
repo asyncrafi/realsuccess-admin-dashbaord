@@ -31,6 +31,11 @@ export function SettingsView() {
     setPrivacyPolicy,
     termsConditions,
     setTermsConditions,
+    saveProfile,
+    savePassword,
+    savePrivacyPolicy,
+    saveTermsConditions,
+    saving,
   } = useSettings();
 
   const [avatarSrc, setAvatarSrc] = useState("/fallback_avatar.png");
@@ -166,6 +171,8 @@ export function SettingsView() {
               setEmail={setEmail}
               contactNumber={contactNumber}
               setContactNumber={setContactNumber}
+              onSave={saveProfile}
+              isSaving={saving}
             />
           )}
 
@@ -177,6 +184,8 @@ export function SettingsView() {
               setNewPassword={setNewPassword}
               confirmPassword={confirmPassword}
               setConfirmPassword={setConfirmPassword}
+              onSave={savePassword}
+              isSaving={saving}
             />
           )}
 
@@ -184,6 +193,8 @@ export function SettingsView() {
             <PrivacyPolicyTab
               content={privacyPolicy}
               setContent={setPrivacyPolicy}
+              onSave={savePrivacyPolicy}
+              isSaving={saving}
             />
           )}
 
@@ -191,6 +202,8 @@ export function SettingsView() {
             <TermsConditionsTab
               content={termsConditions}
               setContent={setTermsConditions}
+              onSave={saveTermsConditions}
+              isSaving={saving}
             />
           )}
         </div>

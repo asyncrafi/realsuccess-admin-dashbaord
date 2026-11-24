@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RealSuccess Admin Dashboard
 
-## Getting Started
+Production-ready enterprise administration portal built with **Next.js 15**, **React 19**, **TypeScript**, and **Tailwind CSS**.
 
-First, run the development server:
+Designed and integrated to provide complete real-time management over the **RealSuccess Event Companion** ecosystem.
 
+---
+
+## 🌐 Live Production Links
+
+| Service | URL | Description |
+|---|---|---|
+| **Live Admin Dashboard** | `https://admin.ourrealsuccess.com/` | Web Admin Management Portal |
+| **Backend API Gateway** | `https://api.ourrealsuccess.com/` | Django REST Framework API |
+| **Interactive API Docs** | `https://api.ourrealsuccess.com/api/docs/` | Swagger / OpenAPI 3.0 Documentation |
+| **Public Privacy Policy** | `https://admin.ourrealsuccess.com/privacy-policy` | Compliance Web Page for App Store & Google Play |
+| **Public Terms & Conditions**| `https://admin.ourrealsuccess.com/terms-conditions` | Compliance Web Page for App Store & Google Play |
+
+---
+
+## 🔑 Default Superuser Credentials
+
+- **Email**: `admin@ourrealsuccess.com`
+- **Password**: `Admin@RealSuccess2026!`
+- **Role**: Platform Administrator / Superuser
+
+---
+
+## ✨ Core Features & Module Overview
+
+- **📊 Dashboard & Real-Time Analytics**:
+  - Live revenue stats, total active attendees, registered tickets, and attendance trends.
+  - Interactive charts and breakdown cards.
+- **📅 Events Management**:
+  - Create, schedule, and edit multi-day summits and events.
+  - Manage event access codes, venues, dates, and live countdown banners.
+- **🎤 Schedule & Speakers Directory**:
+  - Multi-track timeline scheduling with keynote and workshop session categorization.
+  - Comprehensive speaker profiles, expertise tags, and bios.
+- **🎟️ Tickets & Attendees Roster**:
+  - Issue, track, and validate tickets (VIP, General Admission).
+  - On-site QR badge check-in status and attendee exports.
+- **📢 Priority Announcements & Banners**:
+  - Broadcast real-time urgent updates, venue notifications, and takeaway handouts directly to the mobile app.
+- **📁 Resources & Downloads Library**:
+  - Upload event PDFs, presentations, spreadsheets, and workbooks with real-time download counters.
+- **💬 Team Messaging & Concierge**:
+  - Direct coordinator communications and VIP concierge chat monitoring.
+- **⚙️ Profile & Settings Management (Live Backend Sync)**:
+  - **Edit Profile**: Live updates to admin name and contact info via backend API.
+  - **Change Password**: Secure password update with real-time validation.
+  - **Privacy Policy & Terms**: Dynamic rich-text editor updating the production database in real time.
+
+---
+
+## 🛠️ Technology Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **UI Library**: React 19
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **Notifications**: Sonner Toasts
+- **HTTP Client**: Fetch API with unified bearer token management
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+- Node.js 18+ or 20+
+- npm, yarn, or pnpm
+
+### 2. Installation
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone git@github.com:asyncrafi/realsuccess-admin-dashbaord.git
+cd realsuccess-admin-dashbaord
+
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Environment Variables
+Create a `.env.local` file in the root directory:
+```env
+NEXT_PUBLIC_API_URL=https://api.ourrealsuccess.com
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 5. Build for Production
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🐳 Docker Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+A production-optimized multi-stage `Dockerfile` is included:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# Build the Docker image
+docker build -t realsuccess-admin-dashboard .
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Run the container on port 3000
+docker run -d -p 3000:3000 --name realsuccess_frontend realsuccess-admin-dashboard
+```

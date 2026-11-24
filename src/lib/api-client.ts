@@ -3,7 +3,7 @@
  * Easily configured with BASE_URL, authentication headers, and interceptors.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.realsuccess.com/v1";
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.ourrealsuccess.com/api").replace(/\/+$/, "");
 
 interface RequestOptions extends RequestInit {
   data?: unknown;
@@ -12,10 +12,14 @@ interface RequestOptions extends RequestInit {
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { data, headers, ...customConfig } = options;
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("token") || localStorage.getItem("accessToken")
+      : null;
 
+  const method = options.method || (data ? "POST" : "GET");
   const config: RequestInit = {
-    method: data ? "POST" : "GET",
+    method,
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -25,7 +29,8 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     ...customConfig,
   };
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, config);
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const response = await fetch(`${BASE_URL}${cleanEndpoint}`, config);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
