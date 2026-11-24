@@ -40,7 +40,7 @@ export function MessageTeamChat() {
   // Auto-scroll to bottom of chat on new message
   useEffect(() => {
     chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeMember.messages]);
+  }, [activeMember?.messages]);
 
   // Close Date Picker when clicking outside
   useEffect(() => {
@@ -273,93 +273,107 @@ export function MessageTeamChat() {
 
         {/* Right Column: Active Chat Box (8 cols) */}
         <div className="lg:col-span-8 flex flex-col justify-between p-4 md:p-6 bg-white min-h-[600px]">
-          {/* Active Chat Header */}
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="relative h-11 w-11 rounded-full overflow-hidden border border-gray-200">
-                <Image
-                  src={activeMember.avatar}
-                  alt={activeMember.displayName}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="space-y-0.5 text-left">
-                <h3 className="text-base font-bold text-gray-900 leading-tight">
-                  {activeMember.displayName}
-                </h3>
-                <p className="text-xs text-gray-500 font-normal">
-                  {activeMember.eventName || activeMember.role}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Chat Messages Stream Area */}
-          <div className="flex-1 overflow-y-auto py-6 space-y-4 max-h-[460px] px-2">
-            {activeMember.messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={cn(
-                  "flex flex-col max-w-lg space-y-1",
-                  msg.isSender ? "ml-auto items-end text-right" : "items-start text-left"
-                )}
-              >
-                {/* Sender Tag */}
-                <span className="text-[10px] font-bold text-gray-400 px-1">
-                  {msg.senderName}
-                </span>
-
-                {/* Message Bubble */}
-                <div
-                  className={cn(
-                    "px-5 py-3.5 text-xs md:text-sm font-normal shadow-2xs leading-relaxed",
-                    msg.isSender
-                      ? "bg-[oklch(0.48_0.1394_252.75)] text-white rounded-[24px] rounded-tr-xs"
-                      : "bg-white text-gray-800 border border-gray-200/90 rounded-[24px] rounded-tl-xs"
-                  )}
-                >
-                  <p>{msg.text}</p>
-
-                  <span
-                    className={cn(
-                      "block text-[10px] mt-1 font-medium",
-                      msg.isSender ? "text-blue-100" : "text-gray-400"
-                    )}
-                  >
-                    {msg.timestamp}
-                  </span>
+          {activeMember ? (
+            <>
+              {/* Active Chat Header */}
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="relative h-11 w-11 rounded-full overflow-hidden border border-gray-200">
+                    <Image
+                      src={activeMember.avatar}
+                      alt={activeMember.displayName}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="space-y-0.5 text-left">
+                    <h3 className="text-base font-bold text-gray-900 leading-tight">
+                      {activeMember.displayName}
+                    </h3>
+                    <p className="text-xs text-gray-500 font-normal">
+                      {activeMember.eventName || activeMember.role}
+                    </p>
+                  </div>
                 </div>
               </div>
-            ))}
-            <div ref={chatMessagesEndRef} />
-          </div>
 
-          {/* Bottom Chat Message Input Bar */}
-          <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
-            <div className="relative flex-1">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
-                <Paperclip className="h-4 w-4" />
-              </span>
-              <input
-                type="text"
-                placeholder="Type a messages.."
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="w-full h-12 rounded-full border border-gray-300 bg-white pl-11 pr-4 text-xs md:text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[oklch(0.48_0.1394_252.75)]"
-              />
+              {/* Chat Messages Stream Area */}
+              <div className="flex-1 overflow-y-auto py-6 space-y-4 max-h-[460px] px-2">
+                {activeMember.messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      "flex flex-col max-w-lg space-y-1",
+                      msg.isSender ? "ml-auto items-end text-right" : "items-start text-left"
+                    )}
+                  >
+                    {/* Sender Tag */}
+                    <span className="text-[10px] font-bold text-gray-400 px-1">
+                      {msg.senderName}
+                    </span>
+
+                    {/* Message Bubble */}
+                    <div
+                      className={cn(
+                        "px-5 py-3.5 text-xs md:text-sm font-normal shadow-2xs leading-relaxed",
+                        msg.isSender
+                          ? "bg-[oklch(0.48_0.1394_252.75)] text-white rounded-[24px] rounded-tr-xs"
+                          : "bg-white text-gray-800 border border-gray-200/90 rounded-[24px] rounded-tl-xs"
+                      )}
+                    >
+                      <p>{msg.text}</p>
+
+                      <span
+                        className={cn(
+                          "block text-[10px] mt-1 font-medium",
+                          msg.isSender ? "text-blue-100" : "text-gray-400"
+                        )}
+                      >
+                        {msg.timestamp}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <div ref={chatMessagesEndRef} />
+              </div>
+
+              {/* Bottom Chat Message Input Bar */}
+              <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
+                <div className="relative flex-1">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
+                    <Paperclip className="h-4 w-4" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Type a messages.."
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="w-full h-12 rounded-full border border-gray-300 bg-white pl-11 pr-4 text-xs md:text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[oklch(0.48_0.1394_252.75)]"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSendMessage}
+                  className="h-12 w-12 rounded-full bg-[oklch(0.48_0.1394_252.75)] hover:bg-[oklch(0.40_0.1394_252.75)] text-white flex items-center justify-center shadow-md transition-colors cursor-pointer flex-shrink-0"
+                  title="Send Message"
+                >
+                  <SendHorizontal className="h-5 w-5" />
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-3">
+              <div className="p-4 rounded-full bg-gray-50 border border-gray-100 text-gray-400">
+                <MessageSquare className="h-8 w-8" />
+              </div>
+              <h3 className="text-base font-bold text-gray-800">No Active Chat</h3>
+              <p className="text-xs text-gray-400 max-w-sm">
+                No active conversations yet. Conversations between attendees and staff will appear here once initiated.
+              </p>
             </div>
-
-            <button
-              type="button"
-              onClick={handleSendMessage}
-              className="h-12 w-12 rounded-full bg-[oklch(0.48_0.1394_252.75)] hover:bg-[oklch(0.40_0.1394_252.75)] text-white flex items-center justify-center shadow-md transition-colors cursor-pointer flex-shrink-0"
-              title="Send Message"
-            >
-              <SendHorizontal className="h-5 w-5" />
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </div>

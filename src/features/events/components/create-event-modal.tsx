@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectDropdown } from "@/components/ui/select-dropdown";
+import { MOCK_EVENTS } from "../mock-data/events.data";
+import { EventItem } from "../types/events.types";
 
 interface DaySchedule {
   id: string;
@@ -128,6 +130,22 @@ export function CreateEventModal() {
   // Create Event Submit
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const newEvent: EventItem = {
+      id: `evt-${Date.now()}`,
+      name: eventName || "New Event",
+      date: schedules[0]?.date
+        ? new Date(schedules[0].date).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })
+        : "Upcoming",
+      venue: venueName || "TBD",
+      attendees: null,
+      tickets: parseInt(maxAttendees, 10) || 500,
+      status: (eventStatus as any) || "Active",
+    };
+    MOCK_EVENTS.unshift(newEvent);
     toast.success("Event created successfully!");
     handleClose();
   };

@@ -6,12 +6,12 @@ import { ChatChannelType, ChatMessage, TeamMember } from "../types/message-team.
 
 export function useMessageTeam() {
   const [members, setMembers] = useState<TeamMember[]>(MOCK_TEAM_MEMBERS);
-  const [activeMemberId, setActiveMemberId] = useState<string>(MOCK_TEAM_MEMBERS[0].id);
+  const [activeMemberId, setActiveMemberId] = useState<string>(MOCK_TEAM_MEMBERS[0]?.id || "");
   const [channelFilter, setChannelFilter] = useState<"all" | ChatChannelType>("all");
   const [contactSearch, setContactSearch] = useState("");
   const [inputMessage, setInputMessage] = useState("");
 
-  const activeMember = members.find((m) => m.id === activeMemberId) || members[0];
+  const activeMember = members.find((m) => m.id === activeMemberId) || members[0] || null;
 
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
