@@ -19,6 +19,7 @@ import { EventDetailsModal } from "./event-details-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SelectDropdown } from "@/components/ui/select-dropdown";
+import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 // Helper to parse date string like "12 July 2026" to JS Date object
@@ -28,6 +29,8 @@ function parseEventDate(dateStr: string): Date {
 
 export function EventTable() {
   const router = useRouter();
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [selectedDetailsEvent, setSelectedDetailsEvent] = useState<EventItem | null>(null);
@@ -38,6 +41,50 @@ export function EventTable() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const datePickerRef = useRef<HTMLDivElement>(null);
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const res: any = await apiClient("/events/");
+      const items = res?.data || res;
+      if (Array.isArray(items)) {
+        const formatted: EventItem[] = items.map((it: any) => ({
+          id: String(it.id),
+          name: it.name,
+          date:
+            it.date ||
+            (it.start_date
+              ? new Date(it.start_date).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })
+              : "Upcoming"),
+          venue: it.venue || "RealSuccess Center",
+          attendees: it.attendees ?? null,
+          tickets: it.total_tickets || it.tickets || 400,
+          status: it.status || "Active",
+          accessCode: it.access_code,
+        }));
+        setEvents(formatted);
+      }
+    } catch {
+      // fallback
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+    const handleRefresh = () => fetchEvents();
+    window.addEventListener("eventUpdated", handleRefresh);
+    window.addEventListener("focus", handleRefresh);
+    return () => {
+      window.removeEventListener("eventUpdated", handleRefresh);
+      window.removeEventListener("focus", handleRefresh);
+    };
+  }, []);
 
   // Close Date Picker when clicking outside
   useEffect(() => {
@@ -54,7 +101,7 @@ export function EventTable() {
   }, []);
 
   // Filter events based on search, status & date range
-  const filteredEvents = MOCK_EVENTS.filter((evt) => {
+  const filteredEvents = events.filter((evt) => {
     const matchesSearch =
       evt.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       evt.venue.toLowerCase().includes(searchTerm.toLowerCase());

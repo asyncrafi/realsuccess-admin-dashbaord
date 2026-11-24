@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { SelectDropdown } from "@/components/ui/select-dropdown";
 import { MOCK_EVENTS } from "../mock-data/events.data";
 import { EventItem } from "../types/events.types";
+import { apiClient } from "@/lib/api-client";
 
 interface DaySchedule {
   id: string;
@@ -127,27 +128,44 @@ export function CreateEventModal() {
     toast.success("Access code copied to clipboard!");
   };
 
+  const [submitting, setSubmitting] = useState(false);
+
   // Create Event Submit
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newEvent: EventItem = {
-      id: `evt-${Date.now()}`,
-      name: eventName || "New Event",
-      date: schedules[0]?.date
-        ? new Date(schedules[0].date).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })
-        : "Upcoming",
-      venue: venueName || "TBD",
-      attendees: null,
-      tickets: parseInt(maxAttendees, 10) || 500,
-      status: (eventStatus as any) || "Active",
-    };
-    MOCK_EVENTS.unshift(newEvent);
-    toast.success("Event created successfully!");
-    handleClose();
+    if (!eventName.trim()) {
+      toast.error("Please enter an event name");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const payload = {
+        name: eventName.trim(),
+        description: description.trim(),
+        access_code: accessCode.trim() || `RS-AUG-2026-${Math.floor(100 + Math.random() * 900)}`,
+        venue: venueName.trim() || "RealSuccess Center",
+        start_date: schedules[0]?.date || new Date().toISOString().split("T")[0],
+        end_date: schedules[schedules.length - 1]?.date || schedules[0]?.date || new Date().toISOString().split("T")[0],
+        days_duration: schedules.length || 1,
+        total_tickets: parseInt(maxAttendees, 10) || 400,
+        status: eventStatus || "Active",
+      };
+
+      if (isEdit && eventId) {
+        await apiClient(`/events/${eventId}/`, { method: "PUT", data: payload });
+        toast.success("Event updated successfully!");
+      } else {
+        await apiClient("/events/", { method: "POST", data: payload });
+        toast.success("Event created successfully!");
+      }
+
+      window.dispatchEvent(new CustomEvent("eventUpdated"));
+      handleClose();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save event");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -525,12 +543,14 @@ export function CreateEventModal() {
           <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
             <Button
               type="submit"
+              disabled={submitting}
               className="w-full sm:w-auto flex-1 h-12 rounded-full font-semibold text-base"
             >
-              {isEdit ? "Update Event" : "Create"}
+              {submitting ? "Saving..." : isEdit ? "Update Event" : "Create"}
             </Button>
             <button
               type="button"
+              disabled={submitting}
               onClick={handleClose}
               className="w-full sm:w-auto flex-1 h-12 rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 font-semibold text-base transition-colors cursor-pointer"
             >
