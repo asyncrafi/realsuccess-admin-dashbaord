@@ -248,9 +248,6 @@ export function MessageTeamChat() {
                         fill
                         className="object-cover"
                       />
-                      {member.online && (
-                        <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white" />
-                      )}
                     </div>
 
                     {/* Member Info */}
@@ -286,16 +283,13 @@ export function MessageTeamChat() {
                   fill
                   className="object-cover"
                 />
-                {activeMember.online && (
-                  <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white" />
-                )}
               </div>
               <div className="space-y-0.5 text-left">
                 <h3 className="text-base font-bold text-gray-900 leading-tight">
                   {activeMember.displayName}
                 </h3>
-                <p className="text-xs text-emerald-500 font-medium">
-                  {activeMember.online ? "Online" : "Offline"} • {activeMember.eventName}
+                <p className="text-xs text-gray-500 font-normal">
+                  {activeMember.eventName || activeMember.role}
                 </p>
               </div>
             </div>
