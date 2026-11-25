@@ -68,9 +68,9 @@ export function TicketTable() {
           Tickets
         </h2>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           {/* Search Input */}
-          <div className="w-56 md:w-64">
+          <div className="w-full sm:w-56 md:w-64">
             <Input
               placeholder="Search user, event, ticket ID..."
               value={searchTerm}
@@ -81,7 +81,7 @@ export function TicketTable() {
           </div>
 
           {/* Payment Status Filter */}
-          <div className="w-48">
+          <div className="w-[calc(50%-5px)] sm:w-48">
             <SelectDropdown
               value={paymentFilter}
               onChange={(val) => setPaymentFilter(val)}
@@ -96,7 +96,7 @@ export function TicketTable() {
           </div>
 
           {/* Ticket Usage Filter */}
-          <div className="w-40">
+          <div className="w-[calc(50%-5px)] sm:w-40">
             <SelectDropdown
               value={usageFilter}
               onChange={(val) => setUsageFilter(val)}
@@ -197,7 +197,7 @@ export function TicketTable() {
           <Button
             type="button"
             onClick={() => setShowScanModal(true)}
-            className="h-10 px-5 rounded-full font-semibold text-sm flex items-center gap-2 shadow-xs cursor-pointer"
+            className="w-full sm:w-auto h-10 px-5 rounded-full font-semibold text-sm flex items-center justify-center gap-2 shadow-xs cursor-pointer"
           >
             <QrCode className="h-4 w-4" />
             Scan Ticket

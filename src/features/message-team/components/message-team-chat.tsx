@@ -11,6 +11,7 @@ import {
   X,
   FileText,
   Loader2,
+  ArrowLeft,
 } from "lucide-react";
 import { useMessageTeam } from "../hooks/use-message-team";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ export function MessageTeamChat() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [mobileShowChat, setMobileShowChat] = useState(false);
 
   const datePickerRef = useRef<HTMLDivElement>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
@@ -172,9 +174,14 @@ export function MessageTeamChat() {
       </div>
 
       {/* Main Messaging Interface Container */}
-      <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
+      <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[540px] lg:min-h-[640px]">
         {/* Left Column: Conversations Panel (4 cols) */}
-        <div className="lg:col-span-4 border-r border-gray-100 p-4 md:p-5 space-y-4 flex flex-col bg-gray-50/30">
+        <div
+          className={cn(
+            "lg:col-span-4 border-r border-gray-100 p-4 md:p-5 space-y-4 flex-col bg-gray-50/30",
+            mobileShowChat ? "hidden lg:flex" : "flex"
+          )}
+        >
           {/* Search Box */}
           <div className="relative">
             <Input
@@ -199,7 +206,10 @@ export function MessageTeamChat() {
                   <button
                     key={member.id}
                     type="button"
-                    onClick={() => setActiveMemberId(member.id)}
+                    onClick={() => {
+                      setActiveMemberId(member.id);
+                      setMobileShowChat(true);
+                    }}
                     className={cn(
                       "w-full p-3.5 rounded-2xl transition-all duration-200 text-left flex items-start gap-3 cursor-pointer relative",
                       isActive
@@ -239,13 +249,26 @@ export function MessageTeamChat() {
         </div>
 
         {/* Right Column: Active Chat Box (8 cols) */}
-        <div className="lg:col-span-8 flex flex-col justify-between p-4 md:p-6 bg-white min-h-[600px]">
+        <div
+          className={cn(
+            "lg:col-span-8 flex-col justify-between p-4 md:p-6 bg-white min-h-[520px] lg:min-h-[600px]",
+            mobileShowChat ? "flex" : "hidden lg:flex"
+          )}
+        >
           {activeMember ? (
             <>
               {/* Active Chat Header */}
               <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="relative h-11 w-11 rounded-full overflow-hidden border border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setMobileShowChat(false)}
+                    className="lg:hidden p-2 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
+                    aria-label="Back to conversations"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <div className="relative h-11 w-11 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
                     <Image
                       src={activeMember.avatar || "/fallback_avatar.png"}
                       alt={activeMember.displayName || "Avatar"}
