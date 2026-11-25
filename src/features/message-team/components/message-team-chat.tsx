@@ -43,12 +43,15 @@ export function MessageTeamChat() {
   const [mobileShowChat, setMobileShowChat] = useState(false);
 
   const datePickerRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom of chat on new message
+  // Auto-scroll chat container to bottom when opening chat or receiving new messages
   useEffect(() => {
-    chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeMember?.messages]);
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [activeMember?.messages?.length, activeMemberId, mobileShowChat]);
 
   // Close Date Picker when clicking outside
   useEffect(() => {
@@ -288,8 +291,12 @@ export function MessageTeamChat() {
               </div>
 
               {/* Chat Messages Stream Area */}
-              <div className="flex-1 overflow-y-auto py-6 space-y-4 max-h-[460px] px-2">
-                {activeMember.messages.map((msg) => (
+              <div
+                ref={chatContainerRef}
+                className="flex-1 overflow-y-auto py-4 max-h-[460px] px-2"
+              >
+                <div className="flex flex-col justify-end min-h-full space-y-4">
+                  {activeMember.messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={cn(
@@ -359,7 +366,8 @@ export function MessageTeamChat() {
                     </div>
                   </div>
                 ))}
-                <div ref={chatMessagesEndRef} />
+                  <div ref={chatMessagesEndRef} />
+                </div>
               </div>
 
               {/* Pending Attachment Preview */}
