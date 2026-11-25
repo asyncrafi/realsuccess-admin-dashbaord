@@ -24,6 +24,9 @@ export function TicketTable() {
   const {
     searchTerm,
     setSearchTerm,
+    eventsList,
+    eventFilter,
+    setEventFilter,
     paymentFilter,
     setPaymentFilter,
     usageFilter,
@@ -77,6 +80,22 @@ export function TicketTable() {
               onChange={(e) => setSearchTerm(e.target.value)}
               rightIcon={<Search className="h-4 w-4 text-gray-400" />}
               className="h-10 text-sm bg-white border-gray-200"
+            />
+          </div>
+
+          {/* Event Filter */}
+          <div className="w-full sm:w-48">
+            <SelectDropdown
+              value={eventFilter}
+              onChange={(val) => setEventFilter(val)}
+              className="h-10 bg-white border-gray-200"
+              options={[
+                { label: "Event : All", value: "All" },
+                ...eventsList.map((ev) => ({
+                  label: ev.name,
+                  value: ev.id,
+                })),
+              ]}
             />
           </div>
 

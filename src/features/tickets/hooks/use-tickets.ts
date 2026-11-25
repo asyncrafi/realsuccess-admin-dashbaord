@@ -42,7 +42,9 @@ function mapApiTicket(t: any): TicketItem {
 
 export function useTickets() {
   const [tickets, setTickets] = useState<TicketItem[]>([]);
+  const [eventsList, setEventsList] = useState<{ id: string; name: string }[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [eventFilter, setEventFilter] = useState("All");
   const [paymentFilter, setPaymentFilter] = useState("All");
   const [usageFilter, setUsageFilter] = useState("All");
   const [startDate, setStartDate] = useState("");
@@ -70,6 +72,14 @@ export function useTickets() {
 
   useEffect(() => {
     fetchTickets();
+    apiClient("/events/")
+      .then((res: any) => {
+        const items = res?.data || (Array.isArray(res) ? res : []);
+        if (Array.isArray(items)) {
+          setEventsList(items.map((e: any) => ({ id: String(e.id), name: e.name })));
+        }
+      })
+      .catch(() => {});
     const handleUpdated = () => fetchTickets();
     window.addEventListener("ticketsUpdated", handleUpdated);
     return () => window.removeEventListener("ticketsUpdated", handleUpdated);
@@ -101,6 +111,11 @@ export function useTickets() {
         tkt.attendeeEmail.toLowerCase().includes(term) ||
         tkt.eventName.toLowerCase().includes(term);
 
+      const matchesEvent =
+        eventFilter === "All" ||
+        tkt.eventId === eventFilter ||
+        tkt.eventName === eventFilter;
+
       const matchesPayment =
         paymentFilter === "All" ||
         tkt.paymentStatus.toLowerCase() === paymentFilter.toLowerCase();
@@ -124,9 +139,9 @@ export function useTickets() {
         if (tktDate > end) matchesDate = false;
       }
 
-      return matchesSearch && matchesPayment && matchesUsage && matchesDate;
+      return matchesSearch && matchesEvent && matchesPayment && matchesUsage && matchesDate;
     });
-  }, [tickets, searchTerm, paymentFilter, usageFilter, startDate, endDate]);
+  }, [tickets, searchTerm, eventFilter, paymentFilter, usageFilter, startDate, endDate]);
 
   const clearDateFilter = () => {
     setStartDate("");
@@ -136,6 +151,9 @@ export function useTickets() {
   return {
     searchTerm,
     setSearchTerm,
+    eventsList,
+    eventFilter,
+    setEventFilter,
     paymentFilter,
     setPaymentFilter,
     usageFilter,
