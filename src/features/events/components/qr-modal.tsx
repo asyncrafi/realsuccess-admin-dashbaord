@@ -89,7 +89,7 @@ export function QrModal({ event, onClose }: QrModalProps) {
           className="w-full h-11 rounded-full flex items-center justify-center gap-2 font-semibold"
         >
           <Download className="h-4 w-4" />
-          Download QR Code (PNG)
+          Download QR Code
         </Button>
       </div>
     </div>

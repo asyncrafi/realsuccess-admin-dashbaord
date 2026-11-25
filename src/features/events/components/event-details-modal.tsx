@@ -171,7 +171,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[oklch(0.48_0.1394_252.75)] hover:bg-[oklch(0.40_0.1394_252.75)] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Download className="h-3.5 w-3.5" />
-                Download QR Code (PNG)
+                Download QR Code
               </button>
             </div>
           </div>
