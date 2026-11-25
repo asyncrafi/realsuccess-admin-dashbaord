@@ -15,4 +15,8 @@ export interface EventItem {
   accessCode?: string;
   qrRegistrationToken?: string;
   qrCodeUrl?: string;
+  startTimeDisplay?: string;
+  endTimeDisplay?: string;
+  checkInTimeDisplay?: string;
+  checkInEarlyMinutes?: number;
 }

@@ -6,26 +6,28 @@ import Image from "next/image";
 import {
   ArrowLeft,
   Upload,
-  Plus,
-  Trash2,
   Copy,
   RotateCw,
   X,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectDropdown } from "@/components/ui/select-dropdown";
-import { MOCK_EVENTS } from "../mock-data/events.data";
-import { EventItem } from "../types/events.types";
 import { apiClient } from "@/lib/api-client";
 
-interface DaySchedule {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
+function formatTime12h(time24: string, subtractMinutes = 0): string {
+  const [hStr, mStr] = (time24 || "09:00").split(":");
+  const h = parseInt(hStr, 10) || 0;
+  const m = parseInt(mStr, 10) || 0;
+  const totalMins = (((h * 60 + m - subtractMinutes) % 1440) + 1440) % 1440;
+  const finalH = Math.floor(totalMins / 60);
+  const finalM = totalMins % 60;
+  const ampm = finalH >= 12 ? "PM" : "AM";
+  const displayH = finalH % 12 === 0 ? 12 : finalH % 12;
+  return `${displayH}:${String(finalM).padStart(2, "0")} ${ampm}`;
 }
 
 export function CreateEventModal() {
@@ -37,24 +39,29 @@ export function CreateEventModal() {
   const isEdit = action === "edit";
   const isOpen = action === "create" || action === "edit";
 
-  // Form States
-  const [eventName, setEventName] = useState(isEdit ? "RealSuccess Leadership Weekend" : "");
-  const [description, setDescription] = useState(isEdit ? "Leadership & professional growth event organized by RealSuccess." : "");
-  const [eventType, setEventType] = useState(isEdit ? "Conference" : "Workshop");
-  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const todayStr = new Date().toISOString().split("T")[0];
 
-  // Multi-day Schedule State
-  const [schedules, setSchedules] = useState<DaySchedule[]>([
-    { id: "day-1", date: "2026-07-12", startTime: "09:00", endTime: "17:00" },
-  ]);
+  // Form States
+  const [eventName, setEventName] = useState("");
+  const [description, setDescription] = useState("");
+  const [eventType, setEventType] = useState("Workshop");
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+
+  // Date Range & Time State
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("17:00");
+  const [checkInEarlyMinutes, setCheckInEarlyMinutes] = useState("30");
 
   // Venue States
-  const [venueName, setVenueName] = useState(isEdit ? "Main Auditorium" : "");
-  const [address, setAddress] = useState(isEdit ? "RealSuccess Center, Avenue 4" : "");
-  const [city, setCity] = useState(isEdit ? "Dhaka" : "");
+  const [venueName, setVenueName] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
 
   // Access Code State
-  const [accessCode, setAccessCode] = useState(isEdit ? "RS-AUG-2026-002" : "RS-AUG-2026-001");
+  const [accessCode, setAccessCode] = useState("RS-AUG-2026-001");
   const [autoActivate, setAutoActivate] = useState(true);
 
   // Event Settings States
@@ -68,10 +75,46 @@ export function CreateEventModal() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load real event data when editing
+  const resetForm = () => {
+    const today = new Date().toISOString().split("T")[0];
+    setEventName("");
+    setDescription("");
+    setEventType("Workshop");
+    setCoverImage(null);
+    setCoverImageFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    setStartDate(today);
+    setEndDate(today);
+    setStartTime("09:00");
+    setEndTime("17:00");
+    setCheckInEarlyMinutes("30");
+    setVenueName("");
+    setAddress("");
+    setCity("");
+    setEventStatus("Active");
+    setRegistrationStatus("Open");
+    setMaxAttendees("500");
+    setUnlimitedAttendees(false);
+    setPrice("0");
+    setIsFree(true);
+    const random = Math.floor(100 + Math.random() * 900);
+    setAccessCode(`RS-AUG-2026-${random}`);
+  };
+
+  // Load real event data when editing, or reset cleanly when creating/closing
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      resetForm();
+      return;
+    }
     if (isEdit && eventId) {
+      setCoverImage(null);
+      setCoverImageFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       apiClient(`/events/${eventId}/`)
         .then((res: any) => {
           const ev = res?.data || res;
@@ -85,67 +128,30 @@ export function CreateEventModal() {
           const evPrice = parseFloat(ev.price ?? "0") || 0;
           setPrice(String(evPrice));
           setIsFree(evPrice <= 0);
-          if (ev.start_date) {
-            setSchedules([
-              {
-                id: "day-1",
-                date: ev.start_date,
-                startTime: "09:00",
-                endTime: "17:00",
-              },
-            ]);
-          }
+          setStartDate(ev.start_date || todayStr);
+          setEndDate(ev.end_date || ev.start_date || todayStr);
+          setStartTime(ev.start_time ? String(ev.start_time).slice(0, 5) : "09:00");
+          setEndTime(ev.end_time ? String(ev.end_time).slice(0, 5) : "17:00");
+          setCheckInEarlyMinutes(String(ev.check_in_early_minutes ?? 30));
+          setCoverImage(ev.banner_image || null);
         })
         .catch(() => {});
     } else if (!isEdit) {
-      setEventName("");
-      setDescription("");
-      setVenueName("");
-      setPrice("0");
-      setIsFree(true);
-      const random = Math.floor(100 + Math.random() * 900);
-      setAccessCode(`RS-AUG-2026-${random}`);
+      resetForm();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isEdit, eventId]);
 
   if (!isOpen) return null;
 
   const handleClose = () => {
+    resetForm();
     // URL-based modal closing: remove action param from URL
     const params = new URLSearchParams(searchParams.toString());
     params.delete("action");
+    params.delete("id");
     const newQuery = params.toString();
     router.push(newQuery ? `/events?${newQuery}` : "/events", { scroll: false });
-  };
-
-  // Add another day to schedule
-  const handleAddDay = () => {
-    setSchedules([
-      ...schedules,
-      {
-        id: `day-${Date.now()}`,
-        date: "",
-        startTime: "09:00 AM",
-        endTime: "05:00 PM",
-      },
-    ]);
-  };
-
-  // Remove a day from schedule
-  const handleRemoveDay = (id: string) => {
-    if (schedules.length <= 1) return;
-    setSchedules(schedules.filter((s) => s.id !== id));
-  };
-
-  // Update schedule field
-  const handleScheduleChange = (
-    id: string,
-    field: keyof DaySchedule,
-    value: string
-  ) => {
-    setSchedules(
-      schedules.map((s) => (s.id === id ? { ...s, [field]: value } : s))
-    );
   };
 
   // Image Upload handler
@@ -154,6 +160,7 @@ export function CreateEventModal() {
     if (file) {
       const url = URL.createObjectURL(file);
       setCoverImage(url);
+      setCoverImageFile(file);
     }
   };
 
@@ -178,27 +185,64 @@ export function CreateEventModal() {
       toast.error("Please enter an event name");
       return;
     }
+    if (endDate && startDate && endDate < startDate) {
+      toast.error("To Date cannot be earlier than From Date");
+      return;
+    }
     setSubmitting(true);
     try {
       const numericPrice = isFree ? 0 : Math.max(0, parseFloat(price) || 0);
-      const payload = {
-        name: eventName.trim(),
-        description: description.trim(),
-        access_code: accessCode.trim() || `RS-AUG-2026-${Math.floor(100 + Math.random() * 900)}`,
-        venue: venueName.trim() || "RealSuccess Center",
-        start_date: schedules[0]?.date || new Date().toISOString().split("T")[0],
-        end_date: schedules[schedules.length - 1]?.date || schedules[0]?.date || new Date().toISOString().split("T")[0],
-        days_duration: schedules.length || 1,
-        total_tickets: parseInt(maxAttendees, 10) || 400,
-        price: numericPrice,
-        status: eventStatus || "Active",
-      };
+      const earlyMins = Math.max(0, parseInt(checkInEarlyMinutes, 10) || 30);
+      const sDate = startDate || todayStr;
+      const eDate = endDate || sDate;
+      const startMs = new Date(sDate).getTime();
+      const endMs = new Date(eDate).getTime();
+      const daysDuration = Math.max(1, Math.round((endMs - startMs) / 86400000) + 1);
+
+      const finalAccessCode =
+        accessCode.trim() || `RS-AUG-2026-${Math.floor(100 + Math.random() * 900)}`;
+
+      let bodyData: FormData | Record<string, any>;
+      if (coverImageFile) {
+        const fd = new FormData();
+        fd.append("name", eventName.trim());
+        fd.append("description", description.trim());
+        fd.append("access_code", finalAccessCode);
+        fd.append("venue", venueName.trim() || "RealSuccess Center");
+        fd.append("start_date", sDate);
+        fd.append("end_date", eDate);
+        fd.append("start_time", `${startTime || "09:00"}:00`);
+        fd.append("end_time", `${endTime || "17:00"}:00`);
+        fd.append("check_in_early_minutes", String(earlyMins));
+        fd.append("days_duration", String(daysDuration));
+        fd.append("total_tickets", String(parseInt(maxAttendees, 10) || 400));
+        fd.append("price", String(numericPrice));
+        fd.append("status", eventStatus || "Active");
+        fd.append("banner_image", coverImageFile);
+        bodyData = fd;
+      } else {
+        bodyData = {
+          name: eventName.trim(),
+          description: description.trim(),
+          access_code: finalAccessCode,
+          venue: venueName.trim() || "RealSuccess Center",
+          start_date: sDate,
+          end_date: eDate,
+          start_time: `${startTime || "09:00"}:00`,
+          end_time: `${endTime || "17:00"}:00`,
+          check_in_early_minutes: earlyMins,
+          days_duration: daysDuration,
+          total_tickets: parseInt(maxAttendees, 10) || 400,
+          price: numericPrice,
+          status: eventStatus || "Active",
+        };
+      }
 
       if (isEdit && eventId) {
-        await apiClient(`/events/${eventId}/`, { method: "PUT", data: payload });
+        await apiClient(`/events/${eventId}/`, { method: "PUT", data: bodyData });
         toast.success("Event updated successfully!");
       } else {
-        await apiClient("/events/", { method: "POST", data: payload });
+        await apiClient("/events/", { method: "POST", data: bodyData });
         toast.success("Event created successfully!");
       }
 
@@ -328,92 +372,103 @@ export function CreateEventModal() {
             </div>
           </div>
 
-          {/* 2. Date & Time Multi-Day Schedule */}
+          {/* 2. Date Range & Check-in Time */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2">
               <h3 className="text-lg font-bold text-gray-900">Date & Time</h3>
               <span className="text-xs text-gray-500 font-medium">
-                Set single or multi-day schedules
+                Select event date range & check-in window
               </span>
             </div>
 
-            <div className="space-y-4">
-              {schedules.map((schedule, index) => (
-                <div
-                  key={schedule.id}
-                  className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/80 space-y-3 relative group"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[oklch(0.48_0.1394_252.75)] uppercase tracking-wider">
-                      Day {index + 1} Schedule
-                    </span>
-                    {schedules.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDay(schedule.id)}
-                        className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 cursor-pointer"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Remove
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {/* Date */}
-                    <div className="space-y-1">
-                      <Label className="text-xs">Date *</Label>
-                      <input
-                        type="date"
-                        required
-                        value={schedule.date}
-                        onChange={(e) =>
-                          handleScheduleChange(schedule.id, "date", e.target.value)
-                        }
-                        className="w-full h-11 px-4 rounded-full border border-gray-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[oklch(0.48_0.1394_252.75)]"
-                      />
-                    </div>
-
-                    {/* Start Time */}
-                    <div className="space-y-1">
-                      <Label className="text-xs">Start Time *</Label>
-                      <input
-                        type="time"
-                        required
-                        value={schedule.startTime}
-                        onChange={(e) =>
-                          handleScheduleChange(schedule.id, "startTime", e.target.value)
-                        }
-                        className="w-full h-11 px-4 rounded-full border border-gray-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[oklch(0.48_0.1394_252.75)]"
-                      />
-                    </div>
-
-                    {/* End Time */}
-                    <div className="space-y-1">
-                      <Label className="text-xs">End Time *</Label>
-                      <input
-                        type="time"
-                        required
-                        value={schedule.endTime}
-                        onChange={(e) =>
-                          handleScheduleChange(schedule.id, "endTime", e.target.value)
-                        }
-                        className="w-full h-11 px-4 rounded-full border border-gray-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[oklch(0.48_0.1394_252.75)]"
-                      />
-                    </div>
-                  </div>
+            <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/80 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* From Date */}
+                <div className="space-y-1">
+                  <Label className="text-xs">From Date *</Label>
+                  <input
+                    type="date"
+                    required
+                    value={startDate}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setStartDate(val);
+                      if (endDate && val > endDate) {
+                        setEndDate(val);
+                      }
+                    }}
+                    className="w-full h-11 px-4 rounded-full border border-gray-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[oklch(0.48_0.1394_252.75)]"
+                  />
                 </div>
-              ))}
 
-              {/* Add Another Day Action Button */}
-              <button
-                type="button"
-                onClick={handleAddDay}
-                className="w-full py-3 rounded-2xl border-2 border-dashed border-[oklch(0.48_0.1394_252.75)]/40 hover:border-[oklch(0.48_0.1394_252.75)] text-[oklch(0.48_0.1394_252.75)] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-blue-50/30"
-              >
-                <Plus className="h-4 w-4 stroke-[2.5]" />
-                Add Another Day
-              </button>
+                {/* To Date */}
+                <div className="space-y-1">
+                  <Label className="text-xs">To Date *</Label>
+                  <input
+                    type="date"
+                    required
+                    min={startDate}
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full h-11 px-4 rounded-full border border-gray-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[oklch(0.48_0.1394_252.75)]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Start Time */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Start Time *</Label>
+                  <input
+                    type="time"
+                    required
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full h-11 px-4 rounded-full border border-gray-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[oklch(0.48_0.1394_252.75)]"
+                  />
+                </div>
+
+                {/* End Time */}
+                <div className="space-y-1">
+                  <Label className="text-xs">End Time *</Label>
+                  <input
+                    type="time"
+                    required
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full h-11 px-4 rounded-full border border-gray-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[oklch(0.48_0.1394_252.75)]"
+                  />
+                </div>
+
+                {/* Check-in Early Minutes */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Check-in Early (mins)</Label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="720"
+                    value={checkInEarlyMinutes}
+                    onChange={(e) => setCheckInEarlyMinutes(e.target.value)}
+                    className="w-full h-11 px-4 rounded-full border border-gray-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[oklch(0.48_0.1394_252.75)]"
+                  />
+                </div>
+              </div>
+
+              {/* Check-in Time Preview */}
+              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-blue-50/70 border border-blue-100 text-xs text-blue-900 font-medium">
+                <Clock className="h-4 w-4 text-[oklch(0.48_0.1394_252.75)] flex-shrink-0" />
+                <span>
+                  App Check-in Time:{" "}
+                  <strong>
+                    {formatTime12h(
+                      startTime,
+                      Math.max(0, parseInt(checkInEarlyMinutes, 10) || 0)
+                    )}
+                  </strong>{" "}
+                  ({Math.max(0, parseInt(checkInEarlyMinutes, 10) || 0)} mins before{" "}
+                  {formatTime12h(startTime)} start)
+                </span>
+              </div>
             </div>
           </div>
 

@@ -183,8 +183,18 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
                 <Calendar className="h-5 w-5" />
               </div>
               <div className="space-y-0.5 text-xs">
-                <p className="text-gray-400 font-bold uppercase text-[10px]">Event Date</p>
+                <p className="text-gray-400 font-bold uppercase text-[10px]">Event Date & Check-in</p>
                 <p className="font-bold text-gray-900 text-sm">{event.date}</p>
+                {event.startTimeDisplay && (
+                  <p className="text-[11px] text-gray-600">
+                    {event.startTimeDisplay} – {event.endTimeDisplay || "5:00 PM"}
+                  </p>
+                )}
+                {event.checkInTimeDisplay && (
+                  <p className="text-[11px] font-semibold text-blue-700">
+                    Check-in opens: {event.checkInTimeDisplay} ({event.checkInEarlyMinutes ?? 30}m early)
+                  </p>
+                )}
               </div>
             </div>
 

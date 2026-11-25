@@ -77,6 +77,10 @@ export function EventTable() {
             accessCode: it.access_code,
             qrRegistrationToken: it.qr_registration_token,
             qrCodeUrl: it.qr_code_url,
+            startTimeDisplay: it.start_time_display,
+            endTimeDisplay: it.end_time_display,
+            checkInTimeDisplay: it.check_in_time_display,
+            checkInEarlyMinutes: it.check_in_early_minutes ?? 30,
           };
         });
         setEvents(formatted);
