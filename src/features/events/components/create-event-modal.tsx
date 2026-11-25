@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
@@ -62,9 +62,51 @@ export function CreateEventModal() {
   const [eventStatus, setEventStatus] = useState("Active");
   const [maxAttendees, setMaxAttendees] = useState("500");
   const [unlimitedAttendees, setUnlimitedAttendees] = useState(false);
+  const [price, setPrice] = useState("0");
+  const [isFree, setIsFree] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load real event data when editing
+  useEffect(() => {
+    if (!isOpen) return;
+    if (isEdit && eventId) {
+      apiClient(`/events/${eventId}/`)
+        .then((res: any) => {
+          const ev = res?.data || res;
+          if (!ev) return;
+          setEventName(ev.name || "");
+          setDescription(ev.description || "");
+          setVenueName(ev.venue || "");
+          setAccessCode(ev.access_code || "");
+          setEventStatus(ev.status || "Active");
+          setMaxAttendees(String(ev.total_tickets || 400));
+          const evPrice = parseFloat(ev.price ?? "0") || 0;
+          setPrice(String(evPrice));
+          setIsFree(evPrice <= 0);
+          if (ev.start_date) {
+            setSchedules([
+              {
+                id: "day-1",
+                date: ev.start_date,
+                startTime: "09:00",
+                endTime: "17:00",
+              },
+            ]);
+          }
+        })
+        .catch(() => {});
+    } else if (!isEdit) {
+      setEventName("");
+      setDescription("");
+      setVenueName("");
+      setPrice("0");
+      setIsFree(true);
+      const random = Math.floor(100 + Math.random() * 900);
+      setAccessCode(`RS-AUG-2026-${random}`);
+    }
+  }, [isOpen, isEdit, eventId]);
 
   if (!isOpen) return null;
 
@@ -138,6 +180,7 @@ export function CreateEventModal() {
     }
     setSubmitting(true);
     try {
+      const numericPrice = isFree ? 0 : Math.max(0, parseFloat(price) || 0);
       const payload = {
         name: eventName.trim(),
         description: description.trim(),
@@ -147,6 +190,7 @@ export function CreateEventModal() {
         end_date: schedules[schedules.length - 1]?.date || schedules[0]?.date || new Date().toISOString().split("T")[0],
         days_duration: schedules.length || 1,
         total_tickets: parseInt(maxAttendees, 10) || 400,
+        price: numericPrice,
         status: eventStatus || "Active",
       };
 
@@ -507,6 +551,43 @@ export function CreateEventModal() {
                   ]}
                 />
               </div>
+            </div>
+
+            {/* Event Ticket Pricing */}
+            <div className="p-4 rounded-2xl border border-gray-200 bg-[#F6F7F9] space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="eventPrice" className="font-bold text-gray-800">
+                  Ticket Price (USD)
+                </Label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isFree}
+                    onChange={(e) => {
+                      setIsFree(e.target.checked);
+                      if (e.target.checked) setPrice("0");
+                    }}
+                    className="h-4 w-4 accent-[oklch(0.48_0.1394_252.75)] cursor-pointer"
+                  />
+                  <span>Free Event ($0)</span>
+                </label>
+              </div>
+              <Input
+                id="eventPrice"
+                type="number"
+                min="0"
+                step="0.01"
+                disabled={isFree}
+                placeholder={isFree ? "Free ($0.00)" : "Enter ticket price (e.g. 99.00)"}
+                value={isFree ? "0" : price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="bg-white border-gray-200"
+              />
+              <p className="text-[11px] text-gray-500">
+                {isFree
+                  ? "Attendees who scan the event QR will receive a confirmed free ticket immediately."
+                  : "Attendees who scan the event QR will receive a ticket with Pending Payment status until you verify payment."}
+              </p>
             </div>
 
             {/* Maximum Attendees (Free Custom Number Input) */}

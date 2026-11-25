@@ -11,11 +11,13 @@ import {
   ChevronRight,
   Plus,
   X,
+  QrCode,
 } from "lucide-react";
 import { MOCK_EVENTS } from "../mock-data/events.data";
 import { EventItem } from "../types/events.types";
 import { CreateEventModal } from "./create-event-modal";
 import { EventDetailsModal } from "./event-details-modal";
+import { QrModal } from "./qr-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SelectDropdown } from "@/components/ui/select-dropdown";
@@ -34,6 +36,7 @@ export function EventTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [selectedDetailsEvent, setSelectedDetailsEvent] = useState<EventItem | null>(null);
+  const [selectedQrEvent, setSelectedQrEvent] = useState<EventItem | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Date Range Filter States
@@ -48,24 +51,34 @@ export function EventTable() {
       const res: any = await apiClient("/events/");
       const items = res?.data || res;
       if (Array.isArray(items)) {
-        const formatted: EventItem[] = items.map((it: any) => ({
-          id: String(it.id),
-          name: it.name,
-          date:
-            it.date ||
-            (it.start_date
-              ? new Date(it.start_date).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })
-              : "Upcoming"),
-          venue: it.venue || "RealSuccess Center",
-          attendees: it.attendees ?? null,
-          tickets: it.total_tickets || it.tickets || 400,
-          status: it.status || "Active",
-          accessCode: it.access_code,
-        }));
+        const formatted: EventItem[] = items.map((it: any) => {
+          const numPrice = parseFloat(it.price ?? "0") || 0;
+          const isFree = it.is_free ?? numPrice <= 0;
+          return {
+            id: String(it.id),
+            name: it.name,
+            description: it.description || "",
+            date:
+              it.date ||
+              (it.start_date
+                ? new Date(it.start_date).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
+                : "Upcoming"),
+            venue: it.venue || "RealSuccess Center",
+            attendees: it.attendees ?? null,
+            tickets: it.total_tickets || it.tickets || 400,
+            price: numPrice,
+            isFree,
+            priceDisplay: it.price_display || (isFree ? "Free" : `$${numPrice.toFixed(2)}`),
+            status: it.status || "Active",
+            accessCode: it.access_code,
+            qrRegistrationToken: it.qr_registration_token,
+            qrCodeUrl: it.qr_code_url,
+          };
+        });
         setEvents(formatted);
       }
     } catch {
@@ -276,6 +289,7 @@ export function EventTable() {
                 <th className="py-3.5 px-6">Event</th>
                 <th className="py-3.5 px-6">Date</th>
                 <th className="py-3.5 px-6">Venue</th>
+                <th className="py-3.5 px-6 text-center">Price</th>
                 <th className="py-3.5 px-6 text-center">Attendees</th>
                 <th className="py-3.5 px-6 text-center">Tickets</th>
                 <th className="py-3.5 px-6 text-center">Status</th>
@@ -285,7 +299,7 @@ export function EventTable() {
             <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
               {filteredEvents.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-gray-400 font-medium">
+                  <td colSpan={8} className="py-8 text-center text-gray-400 font-medium">
                     No events found matching your filter criteria.
                   </td>
                 </tr>
@@ -308,6 +322,20 @@ export function EventTable() {
                     {/* Venue */}
                     <td className="py-4 px-6 text-gray-600">
                       {evt.venue}
+                    </td>
+
+                    {/* Price */}
+                    <td className="py-4 px-6 text-center whitespace-nowrap">
+                      <span
+                        className={cn(
+                          "inline-block font-bold text-xs px-2.5 py-1 rounded-full",
+                          evt.isFree
+                            ? "text-emerald-700 bg-emerald-50"
+                            : "text-blue-700 bg-blue-50"
+                        )}
+                      >
+                        {evt.priceDisplay}
+                      </span>
                     </td>
 
                     {/* Attendees (Blank "-" if Upcoming or null) */}
@@ -336,9 +364,19 @@ export function EventTable() {
                       </span>
                     </td>
 
-                    {/* Action Column (Eye View & Edit for Upcoming) */}
+                    {/* Action Column (QR, View Details & Edit) */}
                     <td className="py-4 px-6 text-center">
                       <div className="flex items-center justify-center gap-1">
+                        {/* Event QR Code Button */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedQrEvent(evt)}
+                          className="p-1.5 text-[oklch(0.48_0.1394_252.75)] hover:bg-blue-50 rounded-full transition-colors cursor-pointer inline-flex items-center justify-center"
+                          title="Event Registration QR Code"
+                        >
+                          <QrCode className="h-4 w-4" />
+                        </button>
+
                         {/* Eye Details Button */}
                         <button
                           type="button"
@@ -349,19 +387,17 @@ export function EventTable() {
                           <Eye className="h-4 w-4" />
                         </button>
 
-                        {/* Edit Button (Only for Upcoming events) */}
-                        {evt.status === "Upcoming" && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              router.push(`/events?action=edit&id=${evt.id}`, { scroll: false })
-                            }
-                            className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors cursor-pointer inline-flex items-center justify-center"
-                            title="Edit Event"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        {/* Edit Button */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(`/events?action=edit&id=${evt.id}`, { scroll: false })
+                          }
+                          className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors cursor-pointer inline-flex items-center justify-center"
+                          title="Edit Event"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -420,6 +456,12 @@ export function EventTable() {
       <EventDetailsModal
         event={selectedDetailsEvent}
         onClose={() => setSelectedDetailsEvent(null)}
+      />
+
+      {/* Event Registration QR Modal */}
+      <QrModal
+        event={selectedQrEvent}
+        onClose={() => setSelectedQrEvent(null)}
       />
 
       {/* URL-Based Create / Edit Event Modal Popup */}

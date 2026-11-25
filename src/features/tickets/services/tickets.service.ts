@@ -1,48 +1,56 @@
 import { apiClient } from "@/lib/api-client";
-import { MOCK_TICKETS } from "../mock-data/tickets.data";
-import { TicketFilterOptions, TicketItem } from "../types/tickets.types";
+import { PaymentStatus, TicketItem } from "../types/tickets.types";
+
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "https://api.ourrealsuccess.com/api").replace(/\/+$/, "");
+
+export interface ScanValidationResult {
+  success: boolean;
+  valid: boolean;
+  scan_status: "APPROVED" | "PAYMENT_NOT_CONFIRMED" | "ALREADY_USED" | "CANCELLED" | "INVALID_TICKET" | "ERROR";
+  message: string;
+  checked_in_at?: string | null;
+  ticket?: any;
+}
 
 export const ticketsService = {
-  /**
-   * Fetch all tickets with filtering and pagination
-   * In future, replace mock response with: apiClient.get<TicketItem[]>('/tickets', { params: options })
-   */
-  async getTickets(options?: TicketFilterOptions): Promise<{
-    data: TicketItem[];
-    total: number;
-  }> {
-    // Simulating API network latency for realistic feel
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    let results = [...MOCK_TICKETS];
-
-    if (options?.searchTerm) {
-      const term = options.searchTerm.toLowerCase();
-      results = results.filter(
-        (tkt) =>
-          tkt.ticketId.toLowerCase().includes(term) ||
-          tkt.attendeeName.toLowerCase().includes(term) ||
-          tkt.attendeeEmail.toLowerCase().includes(term) ||
-          tkt.eventName.toLowerCase().includes(term)
-      );
-    }
-
-    if (options?.status && options.status !== "All") {
-      results = results.filter(
-        (tkt) => tkt.status.toLowerCase() === options.status?.toLowerCase()
-      );
-    }
-
-    return {
-      data: results,
-      total: results.length,
-    };
+  async updatePaymentStatus(ticketId: string, paymentStatus: PaymentStatus): Promise<TicketItem | null> {
+    const res: any = await apiClient(`/tickets/${ticketId}/payment-status/`, {
+      method: "PATCH",
+      data: { payment_status: paymentStatus },
+    });
+    return res?.data || null;
   },
 
-  /**
-   * Fetch a single ticket details by ID
-   */
-  async getTicketById(id: string): Promise<TicketItem | undefined> {
-    return MOCK_TICKETS.find((tkt) => tkt.id === id);
+  async scanTicket(qrToken: string, eventId?: string): Promise<ScanValidationResult> {
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("token") || localStorage.getItem("accessToken")
+        : null;
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/tickets/scan/`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        qr_token: qrToken.trim(),
+        ...(eventId ? { event_id: Number(eventId) } : {}),
+      }),
+    });
+
+    const json = await response.json().catch(() => ({}));
+    return {
+      success: Boolean(json.success),
+      valid: Boolean(json.valid),
+      scan_status: json.scan_status || (response.ok ? "APPROVED" : "INVALID_TICKET"),
+      message: json.message || (response.ok ? "Approved / Entry Allowed" : "Invalid Ticket"),
+      checked_in_at: json.checked_in_at || null,
+      ticket: json.ticket || null,
+    };
   },
 };

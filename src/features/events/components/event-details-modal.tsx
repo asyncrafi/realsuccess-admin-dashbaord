@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import QRCode from "qrcode";
 import {
   X,
   Calendar,
@@ -8,12 +10,13 @@ import {
   Users,
   Key,
   CheckCircle,
-  Clock,
   Tag,
   Info,
   Pencil,
   Copy,
   Building,
+  Download,
+  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EventItem } from "../types/events.types";
@@ -26,12 +29,40 @@ interface EventDetailsModalProps {
 
 export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
   const router = useRouter();
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+
+  const qrValue = event
+    ? event.qrRegistrationToken || event.accessCode || `EVT-${event.id}`
+    : "";
+
+  useEffect(() => {
+    if (!event || !qrValue) return;
+    QRCode.toDataURL(qrValue, {
+      width: 512,
+      margin: 2,
+      color: {
+        dark: "#111827",
+        light: "#FFFFFF",
+      },
+    })
+      .then((url) => setQrDataUrl(url))
+      .catch((err) => console.error("QR generation failed:", err));
+  }, [event, qrValue]);
 
   if (!event) return null;
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText("RS-AUG-2026-001");
+    navigator.clipboard.writeText(event.accessCode || "RS-AUG-2026-001");
     toast.success("Access code copied to clipboard!");
+  };
+
+  const handleDownloadQr = () => {
+    if (!qrDataUrl) return;
+    const downloadLink = document.createElement("a");
+    downloadLink.download = `${event.name.replace(/\s+/g, "_")}_Registration_QR.png`;
+    downloadLink.href = qrDataUrl;
+    downloadLink.click();
+    toast.success("Event QR Code downloaded!");
   };
 
   const handleEdit = () => {
@@ -56,6 +87,17 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
             >
               {event.status}
             </span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 font-bold text-xs px-3 py-1 rounded-full",
+                event.isFree
+                  ? "text-emerald-700 bg-emerald-50 border border-emerald-200"
+                  : "text-blue-700 bg-blue-50 border border-blue-200"
+              )}
+            >
+              <DollarSign className="h-3 w-3" />
+              {event.priceDisplay || (event.isFree ? "Free" : `$${event.price}`)}
+            </span>
           </div>
 
           <button
@@ -69,10 +111,10 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
         {/* Scrollable Content */}
         <div className="p-6 md:p-8 space-y-6 text-left overflow-y-auto">
           {/* Main Title & Quick Badges */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-[oklch(0.48_0.1394_252.75)] bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100 flex items-center gap-1">
-                <Tag className="h-3 w-3" /> Workshop / Leadership
+                <Tag className="h-3 w-3" /> RealSuccess Event
               </span>
               <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
                 Registration: Open
@@ -88,94 +130,103 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
           <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-100 space-y-1.5">
             <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700 uppercase tracking-wider">
               <Info className="h-3.5 w-3.5 text-gray-500" />
-              <span>Event Overview & Agenda</span>
+              <span>Event Overview</span>
             </div>
             <p className="text-xs md:text-sm text-gray-600 leading-relaxed">
-              RealSuccess Leadership Weekend is designed for executive leaders, managers, and entrepreneurs to accelerate strategic decision-making, master organizational growth, and build high-impact leadership networks.
+              {event.description || "Leadership & professional growth event organized by RealSuccess."}
             </p>
           </div>
 
-          {/* Schedule & Time Breakdown */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Event Schedule
-            </h4>
-            <div className="p-4 rounded-2xl border border-gray-200/80 bg-white shadow-xs space-y-3">
-              <div className="flex items-center justify-between text-xs font-semibold text-gray-800 border-b border-gray-100 pb-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-[oklch(0.48_0.1394_252.75)]" />
-                  <span>Day 1 Schedule: {event.date}</span>
+          {/* Event Registration QR Code Section */}
+          <div className="p-5 rounded-2xl border border-blue-100 bg-blue-50/30 flex flex-col sm:flex-row items-center gap-5">
+            <div className="p-3 bg-white rounded-2xl border border-gray-200 shadow-xs flex-shrink-0">
+              {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={qrDataUrl}
+                  alt="Event Registration QR Code"
+                  className="w-32 h-32 rounded-lg"
+                />
+              ) : (
+                <div className="w-32 h-32 flex items-center justify-center text-xs text-gray-400">
+                  Loading QR...
                 </div>
-                <div className="flex items-center gap-1 text-gray-500">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>09:00 AM - 05:00 PM</span>
-                </div>
-              </div>
+              )}
+            </div>
 
-              <div className="flex items-center justify-between text-xs font-semibold text-gray-800">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-[oklch(0.48_0.1394_252.75)]" />
-                  <span>Day 2 Schedule: 13 July 2026</span>
-                </div>
-                <div className="flex items-center gap-1 text-gray-500">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>10:00 AM - 04:00 PM</span>
-                </div>
-              </div>
+            <div className="flex-1 space-y-2 text-center sm:text-left">
+              <h4 className="text-sm font-bold text-gray-900">
+                Event Registration QR Code
+              </h4>
+              <p className="text-xs text-gray-600">
+                Attendees scan this QR code using the mobile app to open this event, view its price, and register for a ticket.
+              </p>
+              <p className="text-[11px] font-mono text-gray-500 break-all">
+                Token: {qrValue}
+              </p>
+              <button
+                type="button"
+                onClick={handleDownloadQr}
+                disabled={!qrDataUrl}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[oklch(0.48_0.1394_252.75)] hover:bg-[oklch(0.40_0.1394_252.75)] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download QR Code (PNG)
+              </button>
             </div>
           </div>
 
-          {/* Venue & Location Details */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Venue & Location
-            </h4>
+          {/* Schedule & Venue */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-4 rounded-2xl border border-gray-200/80 bg-white shadow-xs flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-blue-50 text-[oklch(0.48_0.1394_252.75)]">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div className="space-y-0.5 text-xs">
+                <p className="text-gray-400 font-bold uppercase text-[10px]">Event Date</p>
+                <p className="font-bold text-gray-900 text-sm">{event.date}</p>
+              </div>
+            </div>
+
             <div className="p-4 rounded-2xl border border-gray-200/80 bg-white shadow-xs flex items-start gap-3">
               <div className="p-2.5 rounded-xl bg-blue-50 text-[oklch(0.48_0.1394_252.75)]">
                 <Building className="h-5 w-5" />
               </div>
               <div className="space-y-0.5 text-xs">
+                <p className="text-gray-400 font-bold uppercase text-[10px]">Venue</p>
                 <p className="font-bold text-gray-900 text-sm">{event.venue}</p>
-                <p className="text-gray-600">Avenue 4, RealSuccess Complex, Suite 302</p>
-                <p className="text-gray-500 font-medium">Dhaka, Bangladesh</p>
               </div>
             </div>
           </div>
 
           {/* Attendees & Ticket Capacity Grid */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Attendees & Capacity Analytics
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Registered Attendees */}
-              <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <Users className="h-4 w-4 text-[oklch(0.48_0.1394_252.75)]" />
-                  <span>Registered</span>
-                </div>
-                <p className="text-xl font-extrabold text-gray-900">
-                  {event.status === "Upcoming" || event.attendees === null ? "-" : event.attendees}
-                </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <Users className="h-4 w-4 text-[oklch(0.48_0.1394_252.75)]" />
+                <span>Checked In</span>
               </div>
+              <p className="text-xl font-extrabold text-gray-900">
+                {event.attendees ?? 0}
+              </p>
+            </div>
 
-              {/* Total Tickets */}
-              <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <Ticket className="h-4 w-4 text-[oklch(0.48_0.1394_252.75)]" />
-                  <span>Total Tickets</span>
-                </div>
-                <p className="text-xl font-extrabold text-gray-900">{event.tickets}</p>
+            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <Ticket className="h-4 w-4 text-[oklch(0.48_0.1394_252.75)]" />
+                <span>Total Tickets</span>
               </div>
+              <p className="text-xl font-extrabold text-gray-900">{event.tickets}</p>
+            </div>
 
-              {/* Max Capacity */}
-              <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <CheckCircle className="h-4 w-4 text-emerald-600" />
-                  <span>Max Capacity</span>
-                </div>
-                <p className="text-xl font-extrabold text-gray-900">500</p>
+            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <CheckCircle className="h-4 w-4 text-emerald-600" />
+                <span>Ticket Price</span>
               </div>
+              <p className="text-xl font-extrabold text-gray-900">
+                {event.priceDisplay || (event.isFree ? "Free" : `$${event.price}`)}
+              </p>
             </div>
           </div>
 
@@ -190,7 +241,7 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
                   Mobile App Access Code
                 </span>
                 <p className="text-sm font-extrabold text-gray-900 font-mono">
-                  RS-AUG-2026-001
+                  {event.accessCode || "RS-AUG-2026-001"}
                 </p>
               </div>
             </div>
@@ -207,17 +258,13 @@ export function EventDetailsModal({ event, onClose }: EventDetailsModalProps) {
 
         {/* Modal Footer */}
         <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/70 flex items-center justify-between gap-3">
-          {event.status === "Upcoming" ? (
-            <button
-              onClick={handleEdit}
-              className="px-5 py-2.5 rounded-full bg-blue-50 text-[oklch(0.48_0.1394_252.75)] hover:bg-blue-100 text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Pencil className="h-4 w-4" />
-              Edit Event
-            </button>
-          ) : (
-            <div />
-          )}
+          <button
+            onClick={handleEdit}
+            className="px-5 py-2.5 rounded-full bg-blue-50 text-[oklch(0.48_0.1394_252.75)] hover:bg-blue-100 text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Pencil className="h-4 w-4" />
+            Edit Event
+          </button>
 
           <button
             onClick={onClose}

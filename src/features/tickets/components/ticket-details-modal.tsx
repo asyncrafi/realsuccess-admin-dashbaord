@@ -1,16 +1,40 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { X, Mail, Ticket, Calendar, CheckCircle, ShieldCheck, MapPin, DollarSign } from "lucide-react";
-import { TicketItem } from "../types/tickets.types";
+import QRCode from "qrcode";
+import { X, Mail, ShieldCheck, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { PaymentStatus, TicketItem } from "../types/tickets.types";
 import { cn } from "@/lib/utils";
 
 interface TicketDetailsModalProps {
   ticket: TicketItem | null;
   onClose: () => void;
+  onUpdatePaymentStatus?: (ticketId: string, status: PaymentStatus) => Promise<void>;
+  updating?: boolean;
 }
 
-export function TicketDetailsModal({ ticket, onClose }: TicketDetailsModalProps) {
+export function TicketDetailsModal({
+  ticket,
+  onClose,
+  onUpdatePaymentStatus,
+  updating = false,
+}: TicketDetailsModalProps) {
+  const [ticketQrUrl, setTicketQrUrl] = useState<string>("");
+
+  const qrValue = ticket ? ticket.qrValidationToken || ticket.ticketId : "";
+
+  useEffect(() => {
+    if (!ticket || !qrValue) return;
+    QRCode.toDataURL(qrValue, {
+      width: 300,
+      margin: 2,
+      color: { dark: "#111827", light: "#FFFFFF" },
+    })
+      .then((url) => setTicketQrUrl(url))
+      .catch(() => {});
+  }, [ticket, qrValue]);
+
   if (!ticket) return null;
 
   return (
@@ -33,100 +57,159 @@ export function TicketDetailsModal({ ticket, onClose }: TicketDetailsModalProps)
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6 text-left overflow-y-auto max-h-[75vh]">
+        <div className="p-6 space-y-5 text-left overflow-y-auto max-h-[75vh]">
           {/* Attendee Profile Card Header */}
           <div className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50/80 border border-gray-100">
-            <div className="relative h-14 w-14 rounded-full overflow-hidden border-2 border-white shadow-xs">
+            <div className="relative h-14 w-14 rounded-full overflow-hidden border-2 border-white shadow-xs flex-shrink-0">
               <Image
-                src={ticket.attendeeAvatar}
+                src={ticket.attendeeAvatar || "/fallback_avatar.png"}
                 alt={ticket.attendeeName}
                 fill
                 className="object-cover"
               />
             </div>
 
-            <div className="space-y-1 flex-1">
-              <div className="flex items-center justify-between">
-                <h4 className="text-base font-bold text-gray-900">{ticket.attendeeName}</h4>
+            <div className="space-y-1 flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-base font-bold text-gray-900 truncate">{ticket.attendeeName}</h4>
                 <span
                   className={cn(
-                    "text-xs font-semibold px-2.5 py-0.5 rounded-full",
-                    ticket.status === "Confirmed"
-                      ? "text-emerald-600 bg-emerald-50 border border-emerald-200"
-                      : "text-amber-500 bg-amber-50 border border-amber-200"
+                    "text-[11px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap",
+                    ticket.paymentStatus === "Paid"
+                      ? "text-emerald-700 bg-emerald-50 border border-emerald-200"
+                      : ticket.paymentStatus === "Payment Rejected"
+                      ? "text-red-700 bg-red-50 border border-red-200"
+                      : "text-amber-700 bg-amber-50 border border-amber-200"
                   )}
                 >
-                  {ticket.status}
+                  {ticket.paymentStatus}
                 </span>
               </div>
 
               <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <Mail className="h-3.5 w-3.5 text-gray-400" />
-                <span>{ticket.attendeeEmail}</span>
+                <Mail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                <span className="truncate">{ticket.attendeeEmail}</span>
               </div>
             </div>
           </div>
 
           {/* Ticket Details Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            {/* Event Name */}
             <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 space-y-1 sm:col-span-2">
               <span className="text-[10px] font-bold text-gray-400 uppercase">Event Name</span>
               <p className="font-bold text-gray-900 text-sm">{ticket.eventName}</p>
             </div>
 
-            {/* Ticket Tier */}
             <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">Ticket Tier</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Payment Status</span>
               <p
                 className={cn(
                   "font-extrabold text-sm",
-                  ticket.ticketType === "VIP" ? "text-blue-600" : "text-gray-700"
+                  ticket.paymentStatus === "Paid"
+                    ? "text-emerald-600"
+                    : ticket.paymentStatus === "Payment Rejected"
+                    ? "text-red-600"
+                    : "text-amber-600"
                 )}
               >
-                {ticket.ticketType} Pass
+                {ticket.paymentStatus}
               </p>
             </div>
 
-            {/* Price */}
             <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">Ticket Price</span>
-              <p className="font-extrabold text-gray-900 text-sm">{ticket.price || "$250.00"}</p>
-            </div>
-
-            {/* Check-In Status */}
-            <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">Check-In Status</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Ticket Usage Status</span>
               <p
                 className={cn(
-                  "font-bold text-sm",
-                  ticket.checkInStatus === "Checked In"
+                  "font-extrabold text-sm",
+                  ticket.ticketStatus === "Used"
                     ? "text-emerald-600"
-                    : "text-gray-400"
+                    : ticket.ticketStatus === "Cancelled"
+                    ? "text-red-600"
+                    : "text-blue-600"
                 )}
               >
-                {ticket.checkInStatus}
+                {ticket.ticketStatus}
               </p>
             </div>
 
-            {/* Issue Date */}
+            <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Ticket Price</span>
+              <p className="font-extrabold text-gray-900 text-sm">{ticket.price || "Free"}</p>
+            </div>
+
             <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
               <span className="text-[10px] font-bold text-gray-400 uppercase">Issue Date</span>
               <p className="font-semibold text-gray-800">{ticket.issueDate}</p>
             </div>
+
+            {ticket.checkedInAt && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-1 sm:col-span-2">
+                <span className="text-[10px] font-bold text-emerald-700 uppercase">Check-In Details</span>
+                <p className="font-semibold text-emerald-900">
+                  Checked in on {new Date(ticket.checkedInAt).toLocaleString()}
+                  {ticket.checkedInBy ? ` by ${ticket.checkedInBy}` : ""}
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Digital Ticket Pass Stub */}
-          <div className="p-4 rounded-2xl border-2 border-dashed border-[oklch(0.48_0.1394_252.75)]/40 bg-blue-50/30 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">Assigned Seat</span>
-              <p className="text-base font-extrabold text-gray-900 font-mono">{ticket.seatNo || "A-12"}</p>
+          {/* Individual Ticket Entry QR */}
+          <div className="p-4 rounded-2xl border-2 border-dashed border-[oklch(0.48_0.1394_252.75)]/30 bg-blue-50/20 flex items-center gap-4">
+            {ticketQrUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={ticketQrUrl}
+                alt="Ticket QR"
+                className="w-20 h-20 rounded-xl border border-gray-200 bg-white p-1 flex-shrink-0"
+              />
+            )}
+            <div className="space-y-1 min-w-0">
+              <span className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1">
+                <ShieldCheck className="h-3.5 w-3.5 text-[oklch(0.48_0.1394_252.75)]" />
+                Individual Entry QR Token
+              </span>
+              <p className="text-xs font-mono font-bold text-gray-900 break-all">{qrValue}</p>
+              <p className="text-[11px] text-gray-500">Open seating — no seat assignment required.</p>
             </div>
-
-            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full flex items-center gap-1 border border-emerald-200">
-              <ShieldCheck className="h-4 w-4" /> Verified Ticket
-            </span>
           </div>
+
+          {/* Manual Payment Verification Controls */}
+          {onUpdatePaymentStatus && (
+            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2.5">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
+                Manual Payment Verification
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={updating || ticket.paymentStatus === "Paid"}
+                  onClick={() => onUpdatePaymentStatus(ticket.id, "Paid")}
+                  className="px-3.5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Mark as Paid
+                </button>
+                <button
+                  type="button"
+                  disabled={updating || ticket.paymentStatus === "Pending Payment"}
+                  onClick={() => onUpdatePaymentStatus(ticket.id, "Pending Payment")}
+                  className="px-3.5 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                >
+                  <Clock className="h-3.5 w-3.5" />
+                  Set Pending
+                </button>
+                <button
+                  type="button"
+                  disabled={updating || ticket.paymentStatus === "Payment Rejected"}
+                  onClick={() => onUpdatePaymentStatus(ticket.id, "Payment Rejected")}
+                  className="px-3.5 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  Reject Payment
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

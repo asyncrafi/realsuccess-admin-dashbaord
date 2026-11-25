@@ -6,14 +6,17 @@ import {
   Search,
   Calendar,
   Eye,
-  Pencil,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   X,
+  QrCode,
 } from "lucide-react";
 import { useTickets } from "../hooks/use-tickets";
 import { TicketDetailsModal } from "./ticket-details-modal";
+import { ScanTicketModal } from "./scan-ticket-modal";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { SelectDropdown } from "@/components/ui/select-dropdown";
 import { cn } from "@/lib/utils";
 
@@ -21,8 +24,10 @@ export function TicketTable() {
   const {
     searchTerm,
     setSearchTerm,
-    statusFilter,
-    setStatusFilter,
+    paymentFilter,
+    setPaymentFilter,
+    usageFilter,
+    setUsageFilter,
     startDate,
     setStartDate,
     endDate,
@@ -34,12 +39,14 @@ export function TicketTable() {
     filteredTickets,
     clearDateFilter,
     isDateFilterActive,
+    updatePaymentStatus,
+    updatingId,
   } = useTickets();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
 
-  // Close Date Picker when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -65,7 +72,7 @@ export function TicketTable() {
           {/* Search Input */}
           <div className="w-56 md:w-64">
             <Input
-              placeholder="Search..."
+              placeholder="Search user, event, ticket ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               rightIcon={<Search className="h-4 w-4 text-gray-400" />}
@@ -73,16 +80,32 @@ export function TicketTable() {
             />
           </div>
 
-          {/* Status Filter */}
-          <div className="w-44">
+          {/* Payment Status Filter */}
+          <div className="w-48">
             <SelectDropdown
-              value={statusFilter}
-              onChange={(val) => setStatusFilter(val)}
+              value={paymentFilter}
+              onChange={(val) => setPaymentFilter(val)}
               className="h-10 bg-white border-gray-200"
               options={[
-                { label: "Status : All", value: "All" },
-                { label: "Confirmed", value: "Confirmed" },
-                { label: "Pending", value: "Pending" },
+                { label: "Payment : All", value: "All" },
+                { label: "Pending Payment", value: "Pending Payment" },
+                { label: "Paid", value: "Paid" },
+                { label: "Payment Rejected", value: "Payment Rejected" },
+              ]}
+            />
+          </div>
+
+          {/* Ticket Usage Filter */}
+          <div className="w-40">
+            <SelectDropdown
+              value={usageFilter}
+              onChange={(val) => setUsageFilter(val)}
+              className="h-10 bg-white border-gray-200"
+              options={[
+                { label: "Usage : All", value: "All" },
+                { label: "Unused", value: "Unused" },
+                { label: "Used", value: "Used" },
+                { label: "Cancelled", value: "Cancelled" },
               ]}
             />
           </div>
@@ -106,7 +129,6 @@ export function TicketTable() {
               <Calendar className="h-4 w-4 text-gray-400" />
             </button>
 
-            {/* Date Range Popover Dropdown */}
             {showDatePicker && (
               <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-gray-200 shadow-xl p-4 z-40 space-y-4 animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2">
@@ -161,7 +183,6 @@ export function TicketTable() {
             )}
           </div>
 
-          {/* Active Filter Clear Badge */}
           {isDateFilterActive && (
             <button
               onClick={clearDateFilter}
@@ -171,6 +192,16 @@ export function TicketTable() {
               <X className="h-3 w-3" />
             </button>
           )}
+
+          {/* Scan Ticket Entrance Button */}
+          <Button
+            type="button"
+            onClick={() => setShowScanModal(true)}
+            className="h-10 px-5 rounded-full font-semibold text-sm flex items-center gap-2 shadow-xs cursor-pointer"
+          >
+            <QrCode className="h-4 w-4" />
+            Scan Ticket
+          </Button>
         </div>
       </div>
 
@@ -183,10 +214,10 @@ export function TicketTable() {
                 <th className="py-3.5 px-6">Ticket ID</th>
                 <th className="py-3.5 px-6">Attendee</th>
                 <th className="py-3.5 px-6">Event</th>
-                <th className="py-3.5 px-6 text-center">Ticket</th>
-                <th className="py-3.5 px-6 text-center">Check-In</th>
+                <th className="py-3.5 px-6 text-center">Price</th>
+                <th className="py-3.5 px-6 text-center">Payment Status</th>
+                <th className="py-3.5 px-6 text-center">Ticket Status</th>
                 <th className="py-3.5 px-6 text-center">Issue Date</th>
-                <th className="py-3.5 px-6 text-center">Status</th>
                 <th className="py-3.5 px-6 text-center">Action</th>
               </tr>
             </thead>
@@ -208,12 +239,12 @@ export function TicketTable() {
                       {tkt.ticketId}
                     </td>
 
-                    {/* Attendee Info (Avatar + Name + Email) */}
+                    {/* Attendee Info */}
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <div className="relative h-9 w-9 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
                           <Image
-                            src={tkt.attendeeAvatar}
+                            src={tkt.attendeeAvatar || "/fallback_avatar.png"}
                             alt={tkt.attendeeName}
                             fill
                             className="object-cover"
@@ -235,30 +266,36 @@ export function TicketTable() {
                       {tkt.eventName}
                     </td>
 
-                    {/* Ticket Type */}
-                    <td className="py-4 px-6 text-center font-bold">
-                      <span
-                        className={cn(
-                          tkt.ticketType === "VIP"
-                            ? "text-[oklch(0.48_0.1394_252.75)]"
-                            : "text-gray-700 font-medium"
-                        )}
-                      >
-                        {tkt.ticketType}
-                      </span>
+                    {/* Price */}
+                    <td className="py-4 px-6 text-center font-semibold text-gray-800 whitespace-nowrap">
+                      {tkt.price || "Free"}
                     </td>
 
-                    {/* Check-In Status */}
+                    {/* Payment Status */}
                     <td className="py-4 px-6 text-center whitespace-nowrap">
                       <span
                         className={cn(
-                          "font-semibold text-xs",
-                          tkt.checkInStatus === "Checked In"
-                            ? "text-emerald-500 font-semibold"
-                            : "text-gray-300 font-normal"
+                          "inline-block font-semibold text-xs px-3 py-1 rounded-full",
+                          tkt.paymentStatus === "Paid" && "text-emerald-700 bg-emerald-50",
+                          tkt.paymentStatus === "Pending Payment" && "text-amber-700 bg-amber-50",
+                          tkt.paymentStatus === "Payment Rejected" && "text-red-700 bg-red-50"
                         )}
                       >
-                        {tkt.checkInStatus}
+                        {tkt.paymentStatus}
+                      </span>
+                    </td>
+
+                    {/* Ticket Usage Status */}
+                    <td className="py-4 px-6 text-center whitespace-nowrap">
+                      <span
+                        className={cn(
+                          "inline-block font-semibold text-xs px-3 py-1 rounded-full",
+                          tkt.ticketStatus === "Used" && "text-emerald-700 bg-emerald-50",
+                          tkt.ticketStatus === "Unused" && "text-blue-700 bg-blue-50",
+                          tkt.ticketStatus === "Cancelled" && "text-red-700 bg-red-50"
+                        )}
+                      >
+                        {tkt.ticketStatus}
                       </span>
                     </td>
 
@@ -267,45 +304,29 @@ export function TicketTable() {
                       {tkt.issueDate}
                     </td>
 
-                    {/* Status Badge */}
-                    <td className="py-4 px-6 text-center whitespace-nowrap font-semibold">
-                      <span
-                        className={cn(
-                          tkt.status === "Confirmed"
-                            ? "text-emerald-500 font-semibold"
-                            : "text-amber-500 font-semibold"
-                        )}
-                      >
-                        {tkt.status}
-                      </span>
-                    </td>
-
-                    {/* Action Eye Details & Edit Button */}
+                    {/* Action View & Quick Mark Paid */}
                     <td className="py-4 px-6 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        {/* View Details Button */}
                         <button
                           type="button"
                           onClick={() => setSelectedTicket(tkt)}
                           className="p-1.5 text-amber-500/90 hover:text-amber-600 hover:bg-amber-50 rounded-full transition-colors cursor-pointer inline-flex items-center justify-center"
-                          title="View Ticket Details"
+                          title="View Ticket Details & Payment Controls"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
 
-                        {/* Edit & Confirm Status Button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            tkt.status = tkt.status === "Confirmed" ? "Pending" : "Confirmed";
-                            tkt.checkInStatus = tkt.status === "Confirmed" ? "Checked In" : "Not Checked In";
-                            setSelectedTicket({ ...tkt });
-                          }}
-                          className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors cursor-pointer inline-flex items-center justify-center"
-                          title="Edit Ticket & Confirm Status"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
+                        {tkt.paymentStatus !== "Paid" && (
+                          <button
+                            type="button"
+                            disabled={updatingId === tkt.id}
+                            onClick={() => updatePaymentStatus(tkt.id, "Paid")}
+                            className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-full transition-colors cursor-pointer inline-flex items-center justify-center disabled:opacity-40"
+                            title="Verify & Mark Payment as Paid"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -364,6 +385,14 @@ export function TicketTable() {
       <TicketDetailsModal
         ticket={selectedTicket}
         onClose={() => setSelectedTicket(null)}
+        onUpdatePaymentStatus={updatePaymentStatus}
+        updating={updatingId === selectedTicket?.id}
+      />
+
+      {/* Entrance Ticket QR Scanner Modal */}
+      <ScanTicketModal
+        isOpen={showScanModal}
+        onClose={() => setShowScanModal(false)}
       />
     </div>
   );
