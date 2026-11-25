@@ -1,38 +1,40 @@
 import { apiClient } from "@/lib/api-client";
-import { MOCK_TEAM_MEMBERS } from "../mock-data/message-team.data";
 import { ChatMessage, TeamMember } from "../types/message-team.types";
 
 export const messageTeamService = {
   /**
-   * Fetch team members list
-   * In future: apiClient.get<TeamMember[]>('/team/messages')
+   * Fetch team members and attendee conversations list
    */
   async getTeamMembers(): Promise<TeamMember[]> {
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    return MOCK_TEAM_MEMBERS;
+    try {
+      const res: any = await apiClient("/chat/team/");
+      if (res && res.data) {
+        return res.data;
+      }
+      return Array.isArray(res) ? res : [];
+    } catch (error) {
+      console.error("Failed to load team members from API:", error);
+      return [];
+    }
   },
 
   /**
-   * Send a message to team member
-   * In future: apiClient.post<ChatMessage>('/team/messages', { memberId, text })
+   * Send a message to team member or attendee conversation
    */
-  async sendMessage(memberId: string, text: string): Promise<ChatMessage> {
-    const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      senderId: "admin",
-      senderName: "Aminul Arnob",
-      text,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      isSender: true,
-    };
-
-    const member = MOCK_TEAM_MEMBERS.find((m) => m.id === memberId);
-    if (member) {
-      member.messages.push(newMsg);
-      member.lastMessage = text;
-      member.lastMessageTime = newMsg.timestamp;
+  async sendMessage(memberId: string, text: string): Promise<ChatMessage | null> {
+    try {
+      const res: any = await apiClient("/chat/messages/", {
+        method: "POST",
+        data: {
+          member_id: memberId,
+          text,
+          attachment_url: "",
+        },
+      });
+      return res?.data || null;
+    } catch (error) {
+      console.error("Failed to send message via API:", error);
+      return null;
     }
-
-    return newMsg;
   },
 };

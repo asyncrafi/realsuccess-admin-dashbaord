@@ -243,8 +243,8 @@ export function MessageTeamChat() {
                     {/* Avatar */}
                     <div className="relative h-11 w-11 rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
                       <Image
-                        src={member.avatar}
-                        alt={member.displayName}
+                        src={member.avatar || "/fallback_avatar.png"}
+                        alt={member.displayName || "Avatar"}
                         fill
                         className="object-cover"
                       />
@@ -280,8 +280,8 @@ export function MessageTeamChat() {
                 <div className="flex items-center gap-3">
                   <div className="relative h-11 w-11 rounded-full overflow-hidden border border-gray-200">
                     <Image
-                      src={activeMember.avatar}
-                      alt={activeMember.displayName}
+                      src={activeMember.avatar || "/fallback_avatar.png"}
+                      alt={activeMember.displayName || "Avatar"}
                       fill
                       className="object-cover"
                     />
