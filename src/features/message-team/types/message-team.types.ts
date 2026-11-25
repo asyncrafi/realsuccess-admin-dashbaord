@@ -7,6 +7,7 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   isSender: boolean; // true if sent by RealSuccess Staff / Admin
+  attachment_url?: string;
 }
 
 export interface TeamMember {

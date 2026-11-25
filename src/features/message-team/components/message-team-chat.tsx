@@ -7,8 +7,10 @@ import {
   Calendar,
   Paperclip,
   SendHorizontal,
-  Users,
   MessageSquare,
+  X,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { useMessageTeam } from "../hooks/use-message-team";
 import { Input } from "@/components/ui/input";
@@ -20,14 +22,18 @@ export function MessageTeamChat() {
     activeMember,
     activeMemberId,
     setActiveMemberId,
-    channelFilter,
-    setChannelFilter,
     contactSearch,
     setContactSearch,
     inputMessage,
     setInputMessage,
+    pendingAttachment,
+    isUploadingAttachment,
+    handleAttachmentUpload,
+    clearPendingAttachment,
     handleSendMessage,
   } = useMessageTeam();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [headerSearch, setHeaderSearch] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -180,45 +186,6 @@ export function MessageTeamChat() {
             />
           </div>
 
-          {/* Channel Filter Tabs */}
-          <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-gray-200 text-[11px] font-semibold">
-            <button
-              onClick={() => setChannelFilter("all")}
-              className={cn(
-                "flex-1 py-1.5 rounded-xl transition-colors cursor-pointer",
-                channelFilter === "all"
-                  ? "bg-[oklch(0.48_0.1394_252.75)] text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              )}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setChannelFilter("event-group")}
-              className={cn(
-                "flex-1 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1",
-                channelFilter === "event-group"
-                  ? "bg-[oklch(0.48_0.1394_252.75)] text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              )}
-            >
-              <Users className="h-3 w-3" />
-              Event Group
-            </button>
-            <button
-              onClick={() => setChannelFilter("direct-staff")}
-              className={cn(
-                "flex-1 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1",
-                channelFilter === "direct-staff"
-                  ? "bg-[oklch(0.48_0.1394_252.75)] text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              )}
-            >
-              <MessageSquare className="h-3 w-3" />
-              Direct Chat
-            </button>
-          </div>
-
           {/* Members Conversation List */}
           <div className="space-y-2 overflow-y-auto flex-1 max-h-[500px] pr-1">
             {members.length === 0 ? (
@@ -315,13 +282,48 @@ export function MessageTeamChat() {
                     {/* Message Bubble */}
                     <div
                       className={cn(
-                        "px-5 py-3.5 text-xs md:text-sm font-normal shadow-2xs leading-relaxed",
+                        "px-5 py-3.5 text-xs md:text-sm font-normal shadow-2xs leading-relaxed space-y-2",
                         msg.isSender
                           ? "bg-[oklch(0.48_0.1394_252.75)] text-white rounded-[24px] rounded-tr-xs"
                           : "bg-white text-gray-800 border border-gray-200/90 rounded-[24px] rounded-tl-xs"
                       )}
                     >
-                      <p>{msg.text}</p>
+                      {msg.attachment_url && (
+                        /\.(png|jpe?g|gif|webp)$/i.test(msg.attachment_url) ? (
+                          <a
+                            href={msg.attachment_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block rounded-xl overflow-hidden border border-black/10 max-w-[240px]"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={msg.attachment_url}
+                              alt="Attachment"
+                              className="w-full h-auto object-cover"
+                            />
+                          </a>
+                        ) : (
+                          <a
+                            href={msg.attachment_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(
+                              "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium underline",
+                              msg.isSender
+                                ? "bg-white/15 text-white"
+                                : "bg-gray-100 text-gray-700"
+                            )}
+                          >
+                            <FileText className="h-4 w-4 flex-shrink-0" />
+                            <span className="truncate max-w-[200px]">
+                              {msg.attachment_url.split("/").pop() || "View Attachment"}
+                            </span>
+                          </a>
+                        )
+                      )}
+
+                      {msg.text && <p>{msg.text}</p>}
 
                       <span
                         className={cn(
@@ -337,15 +339,64 @@ export function MessageTeamChat() {
                 <div ref={chatMessagesEndRef} />
               </div>
 
+              {/* Pending Attachment Preview */}
+              {(pendingAttachment || isUploadingAttachment) && (
+                <div className="pt-2 pb-1 flex items-center gap-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-xs text-blue-800 font-medium">
+                    {isUploadingAttachment ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>Uploading attachment...</span>
+                      </>
+                    ) : pendingAttachment ? (
+                      <>
+                        <FileText className="h-3.5 w-3.5" />
+                        <span className="truncate max-w-[220px]">{pendingAttachment.filename}</span>
+                        <button
+                          type="button"
+                          onClick={clearPendingAttachment}
+                          className="ml-1 text-blue-600 hover:text-blue-900 cursor-pointer"
+                          title="Remove attachment"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
               {/* Bottom Chat Message Input Bar */}
               <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleAttachmentUpload(file);
+                    }
+                    e.target.value = "";
+                  }}
+                />
                 <div className="relative flex-1">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
-                    <Paperclip className="h-4 w-4" />
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingAttachment}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[oklch(0.48_0.1394_252.75)] transition-colors cursor-pointer disabled:opacity-50"
+                    title="Attach file or image"
+                  >
+                    {isUploadingAttachment ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Paperclip className="h-4 w-4" />
+                    )}
+                  </button>
                   <input
                     type="text"
-                    placeholder="Type a messages.."
+                    placeholder="Type a message..."
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -356,7 +407,8 @@ export function MessageTeamChat() {
                 <button
                   type="button"
                   onClick={handleSendMessage}
-                  className="h-12 w-12 rounded-full bg-[oklch(0.48_0.1394_252.75)] hover:bg-[oklch(0.40_0.1394_252.75)] text-white flex items-center justify-center shadow-md transition-colors cursor-pointer flex-shrink-0"
+                  disabled={isUploadingAttachment}
+                  className="h-12 w-12 rounded-full bg-[oklch(0.48_0.1394_252.75)] hover:bg-[oklch(0.40_0.1394_252.75)] text-white flex items-center justify-center shadow-md transition-colors cursor-pointer flex-shrink-0 disabled:opacity-50"
                   title="Send Message"
                 >
                   <SendHorizontal className="h-5 w-5" />

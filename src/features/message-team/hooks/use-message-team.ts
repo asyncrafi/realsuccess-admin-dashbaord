@@ -2,14 +2,20 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { messageTeamService } from "../services/message-team.service";
-import { ChatChannelType, ChatMessage, TeamMember } from "../types/message-team.types";
+import { ChatMessage, TeamMember } from "../types/message-team.types";
+
+export interface PendingAttachment {
+  url: string;
+  filename: string;
+}
 
 export function useMessageTeam() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [activeMemberId, setActiveMemberId] = useState<string>("");
-  const [channelFilter, setChannelFilter] = useState<"all" | ChatChannelType>("all");
   const [contactSearch, setContactSearch] = useState("");
   const [inputMessage, setInputMessage] = useState("");
+  const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isWsConnected, setIsWsConnected] = useState(false);
 
@@ -20,14 +26,14 @@ export function useMessageTeam() {
     try {
       const data = await messageTeamService.getTeamMembers();
       if (data && Array.isArray(data)) {
-        setMembers(data);
+        // Only show direct attendee chats in admin dashboard
+        const attendeeChats = data.filter((m) => m.channelType !== "event-group");
+        setMembers(attendeeChats);
         setActiveMemberId((prev) => {
-          if (prev && data.some((m) => String(m.id) === String(prev))) {
+          if (prev && attendeeChats.some((m) => String(m.id) === String(prev))) {
             return prev;
           }
-          // Prefer first direct-staff attendee chat if available, else first item
-          const firstDirect = data.find((m) => m.channelType === "direct-staff");
-          return firstDirect?.id ? String(firstDirect.id) : (data[0]?.id ? String(data[0].id) : "");
+          return attendeeChats[0]?.id ? String(attendeeChats[0].id) : "";
         });
       }
     } finally {
@@ -38,36 +44,42 @@ export function useMessageTeam() {
   // Handle incoming real-time WebSocket message
   const handleIncomingWsMessage = useCallback((payload: any) => {
     if (!payload || payload.type !== "new_message" || !payload.message) return;
+    if (payload.channel_type === "event-group") return;
 
     const incomingMsg: ChatMessage = payload.message;
-    const targetId =
-      payload.channel_type === "event-group"
-        ? String(payload.member_id)
-        : String(payload.attendee_id || `conv-${payload.conversation_id}`);
+    const targetId = String(payload.attendee_id || `conv-${payload.conversation_id}`);
 
     setMembers((prevMembers) => {
       const existingIndex = prevMembers.findIndex(
-        (m) => String(m.id) === targetId || (payload.conversation_id && String((m as any).conversationId) === String(payload.conversation_id))
+        (m) =>
+          String(m.id) === targetId ||
+          (payload.conversation_id && String((m as any).conversationId) === String(payload.conversation_id))
       );
+
+      const previewText = incomingMsg.text || (incomingMsg.attachment_url ? "📎 Attachment" : "");
 
       if (existingIndex !== -1) {
         const updated = [...prevMembers];
         const target = updated[existingIndex];
         const existingMsgs = target.messages || [];
 
-        // Deduplicate by server message id
         if (existingMsgs.some((m) => String(m.id) === String(incomingMsg.id))) {
           return prevMembers;
         }
 
-        // Replace matching optimistic message if any
         const cleanedMsgs = existingMsgs.filter(
-          (m) => !(String(m.id).startsWith("temp-") && m.text === incomingMsg.text && m.isSender === incomingMsg.isSender)
+          (m) =>
+            !(
+              String(m.id).startsWith("temp-") &&
+              m.text === incomingMsg.text &&
+              (m.attachment_url || "") === (incomingMsg.attachment_url || "") &&
+              m.isSender === incomingMsg.isSender
+            )
         );
 
         const nextMember: TeamMember = {
           ...target,
-          lastMessage: incomingMsg.isSender ? `Staff: ${incomingMsg.text}` : incomingMsg.text,
+          lastMessage: incomingMsg.isSender ? `Staff: ${previewText}` : previewText,
           lastMessageTime: incomingMsg.timestamp,
           unreadCount: incomingMsg.isSender ? target.unreadCount : (target.unreadCount || 0) + 1,
           messages: [...cleanedMsgs, incomingMsg],
@@ -77,7 +89,6 @@ export function useMessageTeam() {
         return updated;
       }
 
-      // Brand new attendee initiated a chat — add them to the top of the list
       const newMember: TeamMember = {
         id: targetId,
         name: payload.attendee_email || payload.attendee_display_name || "Attendee",
@@ -86,9 +97,9 @@ export function useMessageTeam() {
         avatar: payload.attendee_avatar || "/fallback_avatar.png",
         role: payload.attendee_role || "Attendee",
         online: true,
-        channelType: payload.channel_type || "direct-staff",
+        channelType: "direct-staff",
         eventName: payload.event_name || undefined,
-        lastMessage: incomingMsg.text,
+        lastMessage: previewText,
         lastMessageTime: incomingMsg.timestamp,
         unreadCount: incomingMsg.isSender ? 0 : 1,
         messages: [incomingMsg],
@@ -145,8 +156,6 @@ export function useMessageTeam() {
     };
 
     connectWebSocket();
-
-    // Light fallback sync every 30 seconds in case of transient network drop
     const fallbackInterval = setInterval(fetchMembers, 30000);
 
     return () => {
@@ -166,23 +175,41 @@ export function useMessageTeam() {
 
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
-      const matchesSearch =
-        (m.displayName || "").toLowerCase().includes(contactSearch.toLowerCase()) ||
-        (m.name || "").toLowerCase().includes(contactSearch.toLowerCase()) ||
-        (m.lastMessage || "").toLowerCase().includes(contactSearch.toLowerCase());
-
-      const matchesChannel =
-        channelFilter === "all" || m.channelType === channelFilter;
-
-      return matchesSearch && matchesChannel;
+      const q = contactSearch.toLowerCase();
+      return (
+        (m.displayName || "").toLowerCase().includes(q) ||
+        (m.name || "").toLowerCase().includes(q) ||
+        (m.lastMessage || "").toLowerCase().includes(q)
+      );
     });
-  }, [members, contactSearch, channelFilter]);
+  }, [members, contactSearch]);
+
+  const handleAttachmentUpload = async (file: File) => {
+    setIsUploadingAttachment(true);
+    try {
+      const uploaded = await messageTeamService.uploadAttachment(file);
+      if (uploaded) {
+        setPendingAttachment(uploaded);
+      }
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
+  const clearPendingAttachment = () => {
+    setPendingAttachment(null);
+  };
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !activeMemberId) return;
-
     const textToSend = inputMessage.trim();
+    const attachmentUrl = pendingAttachment?.url || "";
+
+    if ((!textToSend && !attachmentUrl) || !activeMemberId) return;
+
     setInputMessage("");
+    setPendingAttachment(null);
+
+    const previewText = textToSend || "📎 Attachment";
 
     // Optimistic UI update
     const tempMsg: ChatMessage = {
@@ -192,6 +219,7 @@ export function useMessageTeam() {
       text: textToSend,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       isSender: true,
+      attachment_url: attachmentUrl,
     };
 
     setMembers((prevMembers) =>
@@ -199,7 +227,7 @@ export function useMessageTeam() {
         if (String(m.id) === String(activeMemberId)) {
           return {
             ...m,
-            lastMessage: `Staff: ${textToSend}`,
+            lastMessage: `Staff: ${previewText}`,
             lastMessageTime: tempMsg.timestamp,
             messages: [...(m.messages || []), tempMsg],
           };
@@ -208,18 +236,17 @@ export function useMessageTeam() {
       })
     );
 
-    // Send via live WebSocket if open, otherwise fallback to REST API
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(
         JSON.stringify({
           type: "chat_message",
           member_id: activeMemberId,
           text: textToSend,
-          attachment_url: "",
+          attachment_url: attachmentUrl,
         })
       );
     } else {
-      const sent = await messageTeamService.sendMessage(activeMemberId, textToSend);
+      const sent = await messageTeamService.sendMessage(activeMemberId, textToSend, attachmentUrl);
       if (sent) {
         fetchMembers();
       }
@@ -231,12 +258,14 @@ export function useMessageTeam() {
     activeMember,
     activeMemberId,
     setActiveMemberId,
-    channelFilter,
-    setChannelFilter,
     contactSearch,
     setContactSearch,
     inputMessage,
     setInputMessage,
+    pendingAttachment,
+    isUploadingAttachment,
+    handleAttachmentUpload,
+    clearPendingAttachment,
     handleSendMessage,
     isLoading,
     isWsConnected,

@@ -18,7 +18,7 @@ export const messageTeamService = {
   },
 
   /**
-   * Fetch team members and attendee conversations list in admin mode
+   * Fetch attendee conversations list in admin mode
    */
   async getTeamMembers(): Promise<TeamMember[]> {
     try {
@@ -34,16 +34,42 @@ export const messageTeamService = {
   },
 
   /**
+   * Upload an attachment file and return its public URL & filename
+   */
+  async uploadAttachment(file: File): Promise<{ url: string; filename: string } | null> {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res: any = await apiClient("/chat/upload/", {
+        method: "POST",
+        data: formData,
+      });
+
+      if (res?.data?.url) {
+        return {
+          url: res.data.url,
+          filename: res.data.filename || file.name,
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to upload chat attachment:", error);
+      return null;
+    }
+  },
+
+  /**
    * Send a message to team member or attendee conversation (REST fallback)
    */
-  async sendMessage(memberId: string, text: string): Promise<ChatMessage | null> {
+  async sendMessage(memberId: string, text: string, attachmentUrl = ""): Promise<ChatMessage | null> {
     try {
       const res: any = await apiClient("/chat/messages/", {
         method: "POST",
         data: {
           member_id: memberId,
           text,
-          attachment_url: "",
+          attachment_url: attachmentUrl,
         },
       });
       return res?.data || null;
