@@ -59,6 +59,11 @@ export function CreateScheduleModal() {
   const [submitting, setSubmitting] = useState(false);
 
   const selectedEvent = eventsList.find((e) => e.id === selectedEventId);
+  const hasValidEventRange = Boolean(
+    selectedEvent?.startDate &&
+      selectedEvent?.endDate &&
+      selectedEvent.endDate >= selectedEvent.startDate
+  );
 
   // Load events and session (if editing) when modal opens
   useEffect(() => {
@@ -289,8 +294,8 @@ export function CreateScheduleModal() {
                   type="date"
                   required
                   value={date}
-                  min={selectedEvent?.startDate || undefined}
-                  max={selectedEvent?.endDate || undefined}
+                  min={hasValidEventRange ? selectedEvent?.startDate : undefined}
+                  max={hasValidEventRange ? selectedEvent?.endDate : undefined}
                   onChange={(e) => setDate(e.target.value)}
                   className="flex h-11 w-full rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[oklch(0.48_0.1394_252.75)]"
                 />
