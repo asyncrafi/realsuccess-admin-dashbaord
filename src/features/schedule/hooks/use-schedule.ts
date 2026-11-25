@@ -13,6 +13,7 @@ export function useSchedule() {
   const [sessions, setSessions] = useState<ScheduleItem[]>(MOCK_SCHEDULE);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [eventFilter, setEventFilter] = useState("All");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -25,10 +26,14 @@ export function useSchedule() {
       if (Array.isArray(items)) {
         const mapped: ScheduleItem[] = items.map((s: any) => ({
           id: String(s.id),
+          eventId: s.event ? String(s.event) : "",
+          eventName: s.event_name || "",
           sessionTitle: s.sessionTitle || s.session_title,
           speakerName: s.speakerName || "",
           speakerRole: s.speakerRole || "",
           time: s.time || "09:00 AM",
+          startTime: s.start_time || "",
+          endTime: s.end_time || "",
           date: s.date || "",
           venue: s.venue || "Main Auditorium",
           type: s.type || "Keynote",
@@ -49,6 +54,16 @@ export function useSchedule() {
     return () => window.removeEventListener("scheduleUpdated", handleUpdated);
   }, []);
 
+  const eventOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    sessions.forEach((s) => {
+      if (s.eventId && s.eventName) {
+        map.set(s.eventId, s.eventName);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [sessions]);
+
   const filteredSchedule = useMemo(() => {
     return sessions.filter((sch) => {
       // Search match
@@ -56,6 +71,7 @@ export function useSchedule() {
       const matchesSearch =
         sch.sessionTitle.toLowerCase().includes(term) ||
         sch.speakerName.toLowerCase().includes(term) ||
+        (sch.eventName || "").toLowerCase().includes(term) ||
         sch.venue.toLowerCase().includes(term) ||
         sch.type.toLowerCase().includes(term);
 
@@ -63,6 +79,10 @@ export function useSchedule() {
       const matchesStatus =
         statusFilter === "All" ||
         sch.status.toLowerCase() === statusFilter.toLowerCase();
+
+      // Event match
+      const matchesEvent =
+        eventFilter === "All" || sch.eventId === eventFilter;
 
       // Date range match
       let matchesDate = true;
@@ -80,9 +100,9 @@ export function useSchedule() {
         if (schDate > end) matchesDate = false;
       }
 
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesStatus && matchesEvent && matchesDate;
     });
-  }, [sessions, searchTerm, statusFilter, startDate, endDate]);
+  }, [sessions, searchTerm, statusFilter, eventFilter, startDate, endDate]);
 
   const clearDateFilter = () => {
     setStartDate("");
@@ -94,6 +114,9 @@ export function useSchedule() {
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    eventFilter,
+    setEventFilter,
+    eventOptions,
     startDate,
     setStartDate,
     endDate,

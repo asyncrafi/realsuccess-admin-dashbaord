@@ -27,6 +27,9 @@ export function ScheduleTable() {
     setSearchTerm,
     statusFilter,
     setStatusFilter,
+    eventFilter,
+    setEventFilter,
+    eventOptions,
     startDate,
     setStartDate,
     endDate,
@@ -74,6 +77,22 @@ export function ScheduleTable() {
               onChange={(e) => setSearchTerm(e.target.value)}
               rightIcon={<Search className="h-4 w-4 text-gray-400" />}
               className="h-10 text-sm bg-white border-gray-200"
+            />
+          </div>
+
+          {/* Event Filter */}
+          <div className="w-48">
+            <SelectDropdown
+              value={eventFilter}
+              onChange={(val) => setEventFilter(val)}
+              className="h-10 bg-white border-gray-200"
+              options={[
+                { label: "Event : All", value: "All" },
+                ...eventOptions.map((ev) => ({
+                  label: ev.name,
+                  value: ev.id,
+                })),
+              ]}
             />
           </div>
 
@@ -196,7 +215,8 @@ export function ScheduleTable() {
           <table className="w-full min-w-[680px] text-left border-collapse">
             <thead>
               <tr className="bg-[oklch(0.48_0.1394_252.75)] text-white text-xs font-bold uppercase tracking-wider">
-                <th className="py-3.5 px-6">Time</th>
+                <th className="py-3.5 px-6">Date & Time</th>
+                <th className="py-3.5 px-6">Event</th>
                 <th className="py-3.5 px-6">Session</th>
                 <th className="py-3.5 px-6">Speaker</th>
                 <th className="py-3.5 px-6">Venue</th>
@@ -208,7 +228,7 @@ export function ScheduleTable() {
             <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
               {filteredSchedule.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-gray-400 font-medium">
+                  <td colSpan={8} className="py-8 text-center text-gray-400 font-medium">
                     No sessions found matching your filter criteria.
                   </td>
                 </tr>
@@ -218,9 +238,15 @@ export function ScheduleTable() {
                     key={sch.id}
                     className="hover:bg-gray-50/70 transition-colors"
                   >
-                    {/* Time */}
+                    {/* Date & Time */}
                     <td className="py-4 px-6 font-medium text-gray-600 whitespace-nowrap">
-                      {sch.time}
+                      <div className="text-xs font-bold text-gray-900">{sch.date || "—"}</div>
+                      <div className="text-xs text-gray-500">{sch.time}</div>
+                    </td>
+
+                    {/* Event */}
+                    <td className="py-4 px-6 text-xs font-semibold text-blue-700 whitespace-nowrap">
+                      {sch.eventName || "—"}
                     </td>
 
                     {/* Session Title */}

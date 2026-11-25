@@ -3,7 +3,11 @@ export type SessionType = "Keynote" | "Panel" | "Workshop" | "Networking" | "Bre
 
 export interface ScheduleItem {
   id: string;
+  eventId?: string;
+  eventName?: string;
   time: string;
+  startTime?: string;
+  endTime?: string;
   sessionTitle: string;
   speakerName: string;
   speakerRole?: string;
@@ -17,6 +21,7 @@ export interface ScheduleItem {
 export interface ScheduleFilterOptions {
   searchTerm?: string;
   status?: string;
+  eventId?: string;
   startDate?: string;
   endDate?: string;
   page?: number;

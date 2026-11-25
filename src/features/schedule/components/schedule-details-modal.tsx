@@ -47,6 +47,11 @@ export function ScheduleDetailsModal({ session, onClose }: ScheduleDetailsModalP
               <span className="text-xs font-semibold text-[oklch(0.48_0.1394_252.75)] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100 flex items-center gap-1">
                 <Tag className="h-3 w-3" /> {session.type}
               </span>
+              {session.eventName && (
+                <span className="text-xs font-semibold text-gray-700 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                  Event: {session.eventName}
+                </span>
+              )}
             </div>
 
             <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
