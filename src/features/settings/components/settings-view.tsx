@@ -62,9 +62,9 @@ export function SettingsView() {
       </h2>
 
       {/* Main Settings Card */}
-      <div className="bg-white rounded-3xl border border-gray-200/80 p-6 md:p-8 shadow-xs space-y-8">
+      <div className="bg-white rounded-3xl border border-gray-200/80 p-4 sm:p-6 md:p-8 shadow-xs space-y-6 md:space-y-8">
         {/* User Profile Card Header */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4 sm:gap-5">
           {/* Avatar with Elegant Floating Camera Badge */}
           <div className="relative h-20 w-20 md:h-24 md:w-24 flex-shrink-0">
             {/* Image Mask Circle */}
@@ -107,11 +107,11 @@ export function SettingsView() {
         </div>
 
         {/* Sub-Navigation Tabs Bar */}
-        <div className="flex items-center gap-6 border-b border-gray-100 text-sm font-bold overflow-x-auto pb-1">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6 border-b border-gray-100 text-xs sm:text-sm font-bold">
           <button
             onClick={() => setActiveTab("edit-profile")}
             className={cn(
-              "pb-3 transition-colors relative whitespace-nowrap cursor-pointer",
+              "pb-2.5 sm:pb-3 transition-colors relative whitespace-nowrap cursor-pointer",
               activeTab === "edit-profile"
                 ? "text-[oklch(0.48_0.1394_252.75)]"
                 : "text-gray-500 hover:text-gray-800"
@@ -126,7 +126,7 @@ export function SettingsView() {
           <button
             onClick={() => setActiveTab("change-password")}
             className={cn(
-              "pb-3 transition-colors relative whitespace-nowrap cursor-pointer",
+              "pb-2.5 sm:pb-3 transition-colors relative whitespace-nowrap cursor-pointer",
               activeTab === "change-password"
                 ? "text-[oklch(0.48_0.1394_252.75)]"
                 : "text-gray-500 hover:text-gray-800"
@@ -141,7 +141,7 @@ export function SettingsView() {
           <button
             onClick={() => setActiveTab("privacy-policy")}
             className={cn(
-              "pb-3 transition-colors relative whitespace-nowrap cursor-pointer",
+              "pb-2.5 sm:pb-3 transition-colors relative whitespace-nowrap cursor-pointer",
               activeTab === "privacy-policy"
                 ? "text-[oklch(0.48_0.1394_252.75)]"
                 : "text-gray-500 hover:text-gray-800"
@@ -156,7 +156,7 @@ export function SettingsView() {
           <button
             onClick={() => setActiveTab("terms-conditions")}
             className={cn(
-              "pb-3 transition-colors relative whitespace-nowrap cursor-pointer",
+              "pb-2.5 sm:pb-3 transition-colors relative whitespace-nowrap cursor-pointer",
               activeTab === "terms-conditions"
                 ? "text-[oklch(0.48_0.1394_252.75)]"
                 : "text-gray-500 hover:text-gray-800"

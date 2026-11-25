@@ -26,7 +26,7 @@ export function AttendanceChart() {
         </div>
 
         {/* Custom Legend */}
-        <div className="flex items-center gap-6 text-xs font-semibold text-gray-700">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs font-semibold text-gray-700">
           <div className="flex items-center gap-2">
             <span className="h-3 w-3 rounded-full bg-[#1E293B]" />
             <span>Ticket Amount Growth</span>

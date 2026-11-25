@@ -41,7 +41,7 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs">
       {/* Editor Toolbar matching reference screenshot */}
-      <div className="flex flex-wrap items-center gap-4 px-5 py-3 border-b border-gray-100 bg-gray-50/70 text-gray-600 text-xs">
+      <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 px-3 sm:px-5 py-2.5 sm:py-3 border-b border-gray-100 bg-gray-50/70 text-gray-600 text-xs">
         {/* Font Selector */}
         <select
           onChange={(e) => execCommand("fontName", e.target.value)}

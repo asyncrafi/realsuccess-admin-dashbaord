@@ -16,7 +16,7 @@ export function WelcomeBanner() {
   }, []);
 
   return (
-    <div className="relative w-full rounded-2xl bg-[oklch(0.48_0.1394_252.75)] px-6 py-4 text-white shadow-md shadow-[oklch(0.48_0.1394_252.75)]/15 flex flex-row items-center justify-between gap-4 overflow-hidden">
+    <div className="relative w-full rounded-2xl bg-[oklch(0.48_0.1394_252.75)] px-4 sm:px-6 py-4 text-white shadow-md shadow-[oklch(0.48_0.1394_252.75)]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 overflow-hidden">
       {/* Background Subtle Accent */}
       <div className="absolute -right-8 -bottom-8 h-32 w-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
 
