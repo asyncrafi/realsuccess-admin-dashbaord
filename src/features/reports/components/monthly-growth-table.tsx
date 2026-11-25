@@ -25,7 +25,7 @@ export function MonthlyGrowthTable({ data }: MonthlyGrowthTableProps) {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-gray-200/80">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full min-w-[680px] text-left border-collapse">
           <thead>
             <tr className="bg-[oklch(0.48_0.1394_252.75)] text-white text-xs font-bold uppercase tracking-wider">
               <th className="py-3.5 px-6">Month</th>

@@ -272,7 +272,7 @@ export function EventTable() {
           <Button
             type="button"
             onClick={() => router.push("/events?action=create", { scroll: false })}
-            className="h-10 px-5 rounded-full font-semibold text-sm flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="w-full sm:w-auto h-10 px-5 rounded-full font-semibold text-sm flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
           >
             <Plus className="h-4 w-4 stroke-[3]" />
             Create Event
@@ -280,10 +280,93 @@ export function EventTable() {
         </div>
       </div>
 
-      {/* Main Table Card */}
-      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      {/* Mobile Card List (< md) */}
+      <div className="md:hidden space-y-3">
+        {filteredEvents.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-200/80 p-8 text-center text-sm text-gray-400 font-medium">
+            No events found matching your filter criteria.
+          </div>
+        ) : (
+          filteredEvents.map((evt) => (
+            <div
+              key={evt.id}
+              className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-4 space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-gray-900 text-base truncate">
+                    {evt.name}
+                  </h3>
+                  <p className="text-xs text-gray-500 truncate">
+                    {evt.venue} · {evt.date}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "inline-block font-semibold text-[11px] px-2.5 py-1 rounded-full flex-shrink-0",
+                    evt.status === "Active" && "text-emerald-600 bg-emerald-50",
+                    evt.status === "Upcoming" && "text-sky-500 bg-sky-50",
+                    evt.status === "Completed" && "text-emerald-500 bg-emerald-50/60"
+                  )}
+                >
+                  {evt.status}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 rounded-xl p-2.5 border border-gray-100 text-xs">
+                <div>
+                  <span className="block text-[10px] text-gray-400 uppercase font-bold">Price</span>
+                  <span className="font-bold text-gray-900">{evt.priceDisplay}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-gray-400 uppercase font-bold">Attendees</span>
+                  <span className="font-bold text-gray-900">
+                    {evt.status === "Upcoming" || evt.attendees === null ? "-" : evt.attendees}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-gray-400 uppercase font-bold">Tickets</span>
+                  <span className="font-bold text-gray-900">{evt.tickets}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedQrEvent(evt)}
+                  className="px-3 py-1.5 rounded-full bg-blue-50 text-[oklch(0.48_0.1394_252.75)] hover:bg-blue-100 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  <QrCode className="h-3.5 w-3.5" />
+                  QR Code
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDetailsEvent(evt)}
+                  className="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  Details
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(`/events?action=edit&id=${evt.id}`, { scroll: false })
+                  }
+                  className="px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop / Tablet Table Card (>= md) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
+        <div className="overflow-x-auto w-full touch-pan-x">
+          <table className="w-full min-w-[760px] text-left border-collapse">
             <thead>
               <tr className="bg-[oklch(0.48_0.1394_252.75)] text-white text-xs font-bold uppercase tracking-wider">
                 <th className="py-3.5 px-6">Event</th>

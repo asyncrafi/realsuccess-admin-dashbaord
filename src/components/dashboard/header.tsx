@@ -56,7 +56,8 @@ export function Header({ onMenuClick }: HeaderProps) {
           </button>
         )}
         <h1 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 truncate">
-          Welcome to real success dashboard
+          <span className="sm:hidden">RealSuccess Dashboard</span>
+          <span className="hidden sm:inline">Welcome to real success dashboard</span>
         </h1>
       </div>
 

@@ -205,10 +205,106 @@ export function TicketTable() {
         </div>
       </div>
 
-      {/* Main Table Card */}
-      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      {/* Mobile Card List (< md) */}
+      <div className="md:hidden space-y-3">
+        {filteredTickets.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-200/80 p-8 text-center text-sm text-gray-400 font-medium">
+            No tickets found matching your filter criteria.
+          </div>
+        ) : (
+          filteredTickets.map((tkt) => (
+            <div
+              key={tkt.id}
+              className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-4 space-y-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative h-10 w-10 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
+                    <Image
+                      src={tkt.attendeeAvatar || "/fallback_avatar.png"}
+                      alt={tkt.attendeeName}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-gray-900 text-sm truncate">
+                      {tkt.attendeeName}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">
+                      {tkt.attendeeEmail}
+                    </p>
+                  </div>
+                </div>
+                <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-[oklch(0.48_0.1394_252.75)] flex-shrink-0">
+                  {tkt.ticketId}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
+                <span className="font-semibold text-gray-800 truncate pr-2">
+                  {tkt.eventName}
+                </span>
+                <span className="font-bold text-gray-900 flex-shrink-0">
+                  {tkt.price || "Free"}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "inline-block font-semibold text-[11px] px-2.5 py-1 rounded-full",
+                      tkt.paymentStatus === "Paid" && "text-emerald-700 bg-emerald-50",
+                      tkt.paymentStatus === "Pending Payment" && "text-amber-700 bg-amber-50",
+                      tkt.paymentStatus === "Payment Rejected" && "text-red-700 bg-red-50"
+                    )}
+                  >
+                    {tkt.paymentStatus}
+                  </span>
+                  <span
+                    className={cn(
+                      "inline-block font-semibold text-[11px] px-2.5 py-1 rounded-full",
+                      tkt.ticketStatus === "Used" && "text-emerald-700 bg-emerald-50",
+                      tkt.ticketStatus === "Unused" && "text-blue-700 bg-blue-50",
+                      tkt.ticketStatus === "Cancelled" && "text-red-700 bg-red-50"
+                    )}
+                  >
+                    {tkt.ticketStatus}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTicket(tkt)}
+                    className="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Details
+                  </button>
+                  {tkt.paymentStatus !== "Paid" && (
+                    <button
+                      type="button"
+                      disabled={updatingId === tkt.id}
+                      onClick={() => updatePaymentStatus(tkt.id, "Paid")}
+                      className="px-3 py-1.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Mark Paid
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop / Tablet Table Card (>= md) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
+        <div className="overflow-x-auto w-full touch-pan-x">
+          <table className="w-full min-w-[760px] text-left border-collapse">
             <thead>
               <tr className="bg-[oklch(0.48_0.1394_252.75)] text-white text-xs font-bold uppercase tracking-wider">
                 <th className="py-3.5 px-6">Ticket ID</th>
